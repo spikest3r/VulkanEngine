@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/oleh/engine/VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa/linux_template/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

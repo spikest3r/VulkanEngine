@@ -1,0 +1,12 @@
+#meshes
+D:\engine\VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa\TestGame\house.obj HouseMesh
+#textures
+D:\engine\VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa\TestGame\house_texture.png HouseTexture
+D:\engine\VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa\TestGame\texture.jpg TextureXYZ
+#objects
+GameObject MyName Default
+Pos 0 0 0 Rot 0 0 0 1 Scl 1 1 1
+Mesh HouseMesh
+Texture TextureXYZ
+Dynamic False
+
