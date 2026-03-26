@@ -58,7 +58,8 @@ private:
 	bool firstMouse = true;
 	float lastX = 0.0f, lastY = 0.0f;
 	bool spaceKey = false;
-	
+	bool xKey = false;
+
 
 	bool spawnPressed = false;
 	bool clearPressed = false;
@@ -103,6 +104,7 @@ GameObject* GameScene::CreateGameObject(Engine* engine, const char* objectType, 
 	}
 
 	object->name = name;
+	object->tag = tag;
 
 	return object;
 }
@@ -148,7 +150,7 @@ void GameScene::InitScene(Engine* engine) {
 
 	portalTrigger = engine->createBoxTrigger({ -13.35f,7.05f,4.65f }, { 1.22f,2.8f,3.5f });
 	bool portalTextureState = false;
-	portalTrigger->onTriggerEnter = [this, cubeTex, cubeTex2, &portalTextureState, engine](GameObject* other) {
+	portalTrigger->onTriggerEnter = [this, cubeTex, cubeTex2, &portalTextureState](GameObject* other) {
 		if (other->tag == "Puppet") {
 			assert(other != nullptr);
 			auto ptr = dynamic_cast<Puppet*>(other);
@@ -211,14 +213,15 @@ void GameScene::UpdateScene(Engine* engine) {
 
 	// clamp pitch
 	if (pitch > 89.0f)  pitch = 89.0f;
-	if (pitch < -89.0f) pitch = -89.0f;
+			if (pitch < -89.0f) pitch = -89.0f;
 
 	// apply camera rotation
-	engine->cameraRotation.x = pitch;
-	engine->cameraRotation.y = yaw;
+			engine->cameraRotation.x = pitch;
+			engine->cameraRotation.y = yaw;
+		}
 
 	// update camera basis vectors
-	engine->getCameraVectors(forward, right);
+		engine->getCameraVectors(forward, right);
 
 	float moveX = state->axes[GAMEPAD_AXIS_LEFT_X];
 	float moveY = state->axes[GAMEPAD_AXIS_LEFT_Y];
@@ -232,97 +235,99 @@ void GameScene::UpdateScene(Engine* engine) {
 	wishDir += right * moveX;
 
 	// apply movement to character controller
-	controller->Move(wishDir, moveSpeed, dt);
+		controller->Move(wishDir, moveSpeed, dt);
 
-	Vector3 cPos = controller->getPosition();
-	engine->cameraPosition = { cPos.x, cPos.y, cPos.z + eyeHeight };
+		// 4. Sync Camera to Controller Position
+		Vector3 cPos = controller->getPosition();
+		engine->cameraPosition = { cPos.x, cPos.y, cPos.z + eyeHeight };
 
-	Vector3 rayOrigin = engine->cameraPosition;
-	Vector3 rayDir = forward;
+		Vector3 rayOrigin = engine->cameraPosition;
+		Vector3 rayDir = forward;
 
-	// movement effects
-	float currentVel = controller->getVerticalVelocity();
+		// movement effects
 
-	const float velThreshold = 0.5f;
+		float currentVel = controller->getVerticalVelocity();
 
-	if (abs(currentVel) < velThreshold) {
-		if (!isGrounded) isGrounded = true;
-	}
-	else {
-		isGrounded = false;
-	}
+		const float velThreshold = 0.5f;
 
-	lastVerticalVel = currentVel;
-
-	float targetZ = 0.0f;
-	Vector3 currentPos = engine->cameraPosition;
-	if (isGrounded) {
-		if (!initialized)
-		{
-			prevCameraPos = currentPos;
-			initialized = true;
+		if (abs(currentVel) < velThreshold) {
+			if (!isGrounded) isGrounded = true;
+		}
+		else {
+			isGrounded = false;
 		}
 
-		// --- velocity from camera position ---
-		Vector3 velocity = (currentPos - prevCameraPos) / dt;
+		lastVerticalVel = currentVel;
 
-		// ignore Z (up axis)
-		float speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+		float targetZ = 0.0f;
+		Vector3 currentPos = engine->cameraPosition;
+		if (isGrounded) {
+			if (!initialized)
+			{
+				prevCameraPos = currentPos;
+				initialized = true;
+			}
 
-		// normalize speed
-		float speedFactor = speed / bobbingMaxSpeed;
-		if (speedFactor > 1.0f) speedFactor = 1.0f;
+			// --- velocity from camera position ---
+			Vector3 velocity = (currentPos - prevCameraPos) / dt;
 
-		// --- update bob time ---
-		if (speed > 0.05f)
-		{
-			bobTime += dt * bobbingFrequency * speedFactor;
+			// ignore Z (up axis)
+			float speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+			// normalize speed
+			float speedFactor = speed / bobbingMaxSpeed;
+			if (speedFactor > 1.0f) speedFactor = 1.0f;
+
+			// --- update bob time ---
+			if (speed > 0.05f)
+			{
+				bobTime += dt * bobbingFrequency * speedFactor;
+			}
+
+			// --- compute bob ---
+			float bob = sin(bobTime);
+			float bobOffset = bob * bobbingAmplitude * speedFactor;
+
+			// --- target Z ---
+			targetZ = bobbingBaseZ;
+			if (speed > 0.05f)
+				targetZ += bobOffset;
+		}
+		else {
+			targetZ = 0.0f;
 		}
 
-		// --- compute bob ---
-		float bob = sin(bobTime);
-		float bobOffset = bob * bobbingAmplitude * speedFactor;
+		// --- smooth apply to cameraOffset.z ---
+		engine->cameraOffset.z += (targetZ - engine->cameraOffset.z) * dt * bobbingSmoothness;
 
-		// --- target Z ---
-		targetZ = bobbingBaseZ;
-		if (speed > 0.05f)
-			targetZ += bobOffset;
-	}
-	else {
-		targetZ = 0.0f;
-	}
+		float cosBob = cos(bobTime);
+		if (cosBob < 0 && previousCosBob >= 0) {
+			controller->playSound(stepCount ? step2 : step1, 1.0f);
+			stepCount = !stepCount;
+		}
+		previousCosBob = cosBob;
 
-	// --- smooth apply to cameraOffset.z ---
-	engine->cameraOffset.z += (targetZ - engine->cameraOffset.z) * dt * bobbingSmoothness;
-
-	float cosBob = cos(bobTime);
-	if (cosBob < 0 && previousCosBob >= 0) {
-		controller->playSound(stepCount ? step2 : step1, 1.0f);
-		stepCount = !stepCount;
-	}
-	previousCosBob = cosBob;
-
-	prevCameraPos = currentPos;
+		prevCameraPos = currentPos;
 
 	auto keyState = state->axes[GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.5f;
 	if (keyState && !isMovingObject) {
-		float maxDistance = 50.0f;
-		RaycastHit hit = engine->raycast(rayOrigin, rayDir, maxDistance);
+			float maxDistance = 50.0f;
+			RaycastHit hit = engine->raycast(rayOrigin, rayDir, maxDistance);
 
-		if (hit.object) {
-			if (hit.object->tag == "Puppet") {
-				isMovingObject = true;
-				objectToMove = hit.object;
-				movingDistance = hit.distance > 10.0f ? hit.distance : 10.0f;
+			if (hit.object) {
+				if (hit.object->tag == "Puppet") {
+					isMovingObject = true;
+					objectToMove = hit.object;
+					movingDistance = hit.distance > 10.0f ? hit.distance : 10.0f;
+				}
 			}
 		}
-	}
 	else if (!keyState && isMovingObject) {
-		isMovingObject = false;
-		objectToMove = nullptr;
-	}
+			isMovingObject = false;
+			objectToMove = nullptr;
+		}
 
-	if (isMovingObject && objectToMove) {
+		if (isMovingObject && objectToMove) {
 		try {
 			Vector3 target = currentPos + forward * movingDistance;
 
@@ -342,14 +347,14 @@ void GameScene::UpdateScene(Engine* engine) {
 	}
 
 	if (state->buttons[GAMEPAD_BUTTON_CROSS]) {
-		if (!spaceKey) {
-			spaceKey = true;
-			controller->Jump(15.0f);
+			if (!spaceKey) {
+				spaceKey = true;
+				controller->Jump(15.0f);
+			}
 		}
-	}
-	else {
-		spaceKey = false;
-	}
+		else {
+			spaceKey = false;
+		}
 
 	if (state->buttons[GAMEPAD_BUTTON_SQUARE]) {
 		if (!spawnPressed) {
@@ -450,6 +455,21 @@ void GameScene::clearPuppets() {
 	puppets.clear();
 }
 
+void GameUI() {
+    UI::Begin("Game Settings");
+    if (UI::Button("Spawn Cube")) {
+		static_cast<GameScene*>(engine->getActiveScene())->createPuppet();
+    }
+	if(UI::Button("Erase all")) {
+		static_cast<GameScene*>(engine->getActiveScene())->clearPuppets();
+	}
+	if (UI::Button("Reload scene")) {
+		auto scene = engine->getActiveScene();
+		engine->loadScene(scene);
+	}
+	UI::End();
+}
+
 void MainUI() {
 	// if(uiVisible) GameUI();
 
@@ -482,6 +502,9 @@ int main() {
 		Engine::Destroy(engine);
 		return EXIT_FAILURE;
 	}
+
+	std::cout << sizeof(GameObject) << std::endl;
+	std::cout << sizeof(Scene) << std::endl;
 
 	engine->setCursorMode(DISABLED);
 

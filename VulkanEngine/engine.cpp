@@ -1,6 +1,9 @@
 #include "engine.h"
 
 void Engine::init(const int width, const int height, const char* title) {
+	printf("%i\n", sizeof(GameObject));
+	printf("%i\n", sizeof(Scene));
+	
 	initWindow(width, height, title);
 	initVulkan();
 
@@ -228,6 +231,14 @@ void Engine::cookMesh(Mesh* mesh) {
 
 #ifdef _WIN32
 	PxCookingParams params(gPhysics->getTolerancesScale());
+
+	std::cout << "Vertex count: " << mesh->vertices.size() << std::endl;
+	std::cout << "Index count: " << mesh->indices.size() << std::endl;
+
+	for (int i = 0; i < 5; i++) {
+		auto& v = mesh->vertices[i];
+		std::cout << "v" << i << ": " << v.pos.x << " " << v.pos.y << " " << v.pos.z << std::endl;
+	}
 
 	{
 		PxTriangleMeshDesc meshDesc;

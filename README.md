@@ -16,24 +16,27 @@ The engine is instantiated via a **static factory** to ensure correct memory own
 
     #include "Engine.h"
 
-    int main() {
-        Engine* engine = Engine::Create();
+int main() {
+    // [1] Create instance via Static Factory
+    Engine* engine = Engine::Create();
 
         engine->init(1920, 1080, "VulkanEngine v0.2 Beta");
 
         while (engine->running()) {
             engine->update();
-
-            float dt = engine->getDeltaTime();
+        
+        float dt = engine->getDeltaTime();
 
             engine->render();
-        }
-
-        engine->cleanup();
-        Engine::Destroy(engine);
-
-        return 0;
     }
+
+    // [4] Graceful Shutdown
+    engine->cleanup();
+    Engine::Destroy(engine);
+
+    return 0;
+}
+```
 
 ---
 
