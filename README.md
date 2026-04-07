@@ -16,9 +16,18 @@ The engine is instantiated via a **static factory** to ensure correct memory own
 
     #include "Engine.h"
 
-int main() {
-    // [1] Create instance via Static Factory
-    Engine* engine = Engine::Create();
+Included Editor (beta) and TestGame (use to try engine features and compilation success).
+
+---
+
+# Core Lifecycle
+
+The engine is instantiated via a **static factory** to ensure correct memory ownership across the DLL boundary.
+
+    #include "Engine.h"
+
+    int main() {
+        Engine* engine = Engine::Create();
 
         engine->init(1920, 1080, "VulkanEngine v0.2 Beta");
 
@@ -30,13 +39,11 @@ int main() {
             engine->render();
     }
 
-    // [4] Graceful Shutdown
-    engine->cleanup();
-    Engine::Destroy(engine);
+        engine->cleanup();
+        Engine::Destroy(engine);
 
-    return 0;
-}
-```
+        return 0;
+    }
 
 ---
 
