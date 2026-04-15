@@ -16,7 +16,7 @@ static bool uiVisible = false;
 static float usageMB = 0.0f;
 
 inline float length(Vector3 vector) {
-	return sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+	return sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
 
 class Puppet : public GameObject {
@@ -146,7 +146,7 @@ void GameScene::InitScene(Engine* engine) {
 				}
 			}
 		}
-	};
+		};
 
 	portalTrigger = engine->createBoxTrigger({ -13.35f,7.05f,4.65f }, { 1.22f,2.8f,3.5f });
 	bool portalTextureState = false;
@@ -160,7 +160,7 @@ void GameScene::InitScene(Engine* engine) {
 				ptr->ToggleTexture();
 			}
 		}
-	};
+		};
 
 	triggerSuccess1 = engine->createBoxTrigger({ 13.f,13.f,13.f }, { 2.7f,2.7f,2.7f });
 	triggerSuccess1->onTriggerEnter = [engine/*, scene*/](GameObject* other) {
@@ -432,7 +432,7 @@ void Puppet::Start() {
 void Puppet::ToggleTexture() {
 	tex = !tex;
 	Texture* texture = engine->getTexture(tex ? "CubeTex2" : "CubeTex1");
-	if(texture) {
+	if (texture) {
 		updateTexture(texture);
 	}
 }
@@ -456,11 +456,11 @@ void GameScene::clearPuppets() {
 }
 
 void GameUI() {
-    UI::Begin("Game Settings");
-    if (UI::Button("Spawn Cube")) {
+	UI::Begin("Game Settings");
+	if (UI::Button("Spawn Cube")) {
 		static_cast<GameScene*>(engine->getActiveScene())->createPuppet();
-    }
-	if(UI::Button("Erase all")) {
+	}
+	if (UI::Button("Erase all")) {
 		static_cast<GameScene*>(engine->getActiveScene())->clearPuppets();
 	}
 	if (UI::Button("Reload scene")) {
@@ -470,13 +470,13 @@ void GameUI() {
 	UI::End();
 }
 
-void MainUI() {
-	// if(uiVisible) GameUI();
+void MainUI(Engine* engine) {
+	if (uiVisible) GameUI();
 
 	UI::Begin("Engine Monitor");
-    
-    auto vramData = engine->getVRAMStats();
-    for (const auto& heap : vramData) {
+
+	auto vramData = engine->getVRAMStats();
+	for (const auto& heap : vramData) {
 		char buffer1[128];
 		sprintf_s(buffer1, 128, "VRAM Heap %u", heap.heapIndex);
 		UI::Text(buffer1);
@@ -485,8 +485,8 @@ void MainUI() {
 		char buffer2[128];
 		sprintf_s(buffer2, 128, "%.1f / %.1f MB", heap.usageMB, heap.budgetMB);
 		UI::Text(buffer2);
-    }
-    
+	}
+
 	UI::End();
 }
 
@@ -514,7 +514,7 @@ int main() {
 
 	engine->loadScene(scene);
 
-	engine->setClearColor({0.039f, 0.102f, 0.200f});
+	engine->setClearColor({ 0.039f, 0.102f, 0.200f });
 	engine->SetUICallback(MainUI);
 
 	Vector3 forward = { 0.0f, 0.0f, 0.0f };

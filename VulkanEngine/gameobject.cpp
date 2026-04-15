@@ -17,14 +17,16 @@ GameObject::GameObject() {
 glm::mat4 GameObject::GetModel() {
     glm::mat4 baseModel = glm::mat4(1.0f);
 
-    // 1. Translation (World Space)
     baseModel = glm::translate(baseModel, Vec3toGlm(transform.position));
 
-    // 2. Rotation (Using Quaternion)
-    // toGlm() handles the (w, x, y, z) ordering for you
-    baseModel *= glm::mat4_cast(glm::quat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w));
+    glm::quat q(
+        transform.rotation.w,
+        transform.rotation.x,
+        transform.rotation.y,
+        transform.rotation.z
+    );
+    baseModel *= glm::mat4_cast(q);
 
-    // 3. Scale (Local Space)
     baseModel = glm::scale(baseModel, Vec3toGlm(transform.scale));
 
     return baseModel;
@@ -62,11 +64,13 @@ void Engine::internal_createGameObject(
     ptr->channelGroup->setMode(FMOD_2D);
 
     // Physics
-    if (isDynamic && mesh) {
-        ptr->physicsActor = createDynamicActor(mesh, spawnTransform.scale, material->material);
-    }
-    else {
-        ptr->physicsActor = createStaticActor(mesh, spawnTransform.scale, material->material);
+    if (mesh) {
+        if (isDynamic) {
+            ptr->physicsActor = createDynamicActor(mesh, spawnTransform.scale, material->material);
+        }
+        else {
+            ptr->physicsActor = createStaticActor(mesh, spawnTransform.scale, material->material);
+        }
     }
 
     if (ptr->physicsActor) {

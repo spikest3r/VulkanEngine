@@ -243,7 +243,7 @@ GameObject* EditorScene::CreateGameObject(Engine* engine, const char* objectType
 void EditorScene::InitScene(Engine* engine) {
 	importMeshButton = false;
 
-	engine->SetUICallback([this]() {EditorUI(); });
+	engine->SetUICallback([this](Engine*) {EditorUI(); });
 }
 
 Quaternion EulerDegreesToQuaternion(Vector3 e)

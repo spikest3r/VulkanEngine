@@ -146,3 +146,7 @@ std::vector<VRAMStats> Engine::getVRAMStats() {
 std::string IResource::getName() {
 	return name;
 }
+
+void Engine::pushRayDebug(RayDebug rd) {
+	gRayDebugs.push_back(rd);
+}

@@ -5,6 +5,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
+#include "cooking/PxSdfDesc.h"
+
 Vector3 PxQuatToEuler(const physx::PxQuat& q) {
     // 1. Convert PhysX Quat to GLM Quat
     glm::quat gq(q.w, q.x, q.y, q.z);
@@ -114,9 +116,17 @@ void Engine::initPhysX() {
     gControllerManager = PxCreateControllerManager(*gScene);
 
     PxCookingParams params(gPhysics->getTolerancesScale());
+    params.meshPreprocessParams |= PxMeshPreprocessingFlag::eWELD_VERTICES;
+    params.meshWeldTolerance = 0.0001f;
 #ifndef _WIN32
     mCooking = PxCreateCooking(PX_PHYSICS_VERSION, *gFoundation, params);
 #endif
+
+    gScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
+
+    gScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+
+    gScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_EDGES, 1.0f);
 }
 
 RaycastHit Engine::raycast(Vector3 origin, Vector3 direction, float distance) {
@@ -178,6 +188,13 @@ PxRigidDynamic* Engine::createDynamicActor(Mesh* mesh, Vector3 scale, PxMaterial
     return dynamicActor;
 }
 
+glm::mat4 basis(
+    1, 0, 0, 0,
+    0, 0, 1, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 1
+);
+
 void Engine::updatePhysics(float deltaTime) {
     // if (getKey(KeyCode::E) != PRESS) return;
 
@@ -194,11 +211,13 @@ void Engine::updatePhysics(float deltaTime) {
             PxRigidDynamic* dynamicActor = static_cast<PxRigidDynamic*>(activeActors[i]);
             PxTransform pose = dynamicActor->getGlobalPose();
 
-            // Sync Position
             obj->transform.position = { pose.p.x, pose.p.y, pose.p.z };
 
-            // Sync Rotation
-            obj->transform.rotation = { pose.q.x,pose.q.y,pose.q.z,pose.q.w };
+            glm::quat physxQuat(pose.q.w, pose.q.x, pose.q.y, pose.q.z);
+
+            glm::quat finalQuat = physxQuat;
+
+            obj->transform.rotation = { finalQuat.x, finalQuat.y, finalQuat.z, finalQuat.w };
         }
     }
     int a = 0;
@@ -229,4 +248,94 @@ void Engine::checkTriggerDestroy() {
 
         triggerDestroyQueue.pop();
     }
+}
+
+void Engine::cookMesh(Mesh* mesh) {
+
+#ifdef _WIN32
+    PxCookingParams params(gPhysics->getTolerancesScale());
+
+    {
+        PxTriangleMeshDesc meshDesc;
+        std::vector<PxVec3> pxVerts;
+        pxVerts.reserve(mesh->vertices.size());
+        for (auto& v : mesh->vertices) {
+            pxVerts.push_back(PxVec3(v.pos.x, v.pos.y, v.pos.z));
+        }
+
+        // Then use pxVerts for cooking:
+        meshDesc.points.count = (PxU32)pxVerts.size();
+        meshDesc.points.stride = sizeof(PxVec3);
+        meshDesc.points.data = pxVerts.data();
+
+        meshDesc.triangles.count = (PxU32)mesh->indices.size() / 3;
+        meshDesc.triangles.stride = sizeof(uint32_t) * 3;
+        meshDesc.triangles.data = mesh->indices.data();
+
+        PxDefaultMemoryOutputStream writeBuffer;
+
+        if (!PxCookTriangleMesh(params, meshDesc, writeBuffer))
+            return;
+
+        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+        mesh->triMesh = gPhysics->createTriangleMesh(readBuffer);
+    }
+
+    {
+        PxConvexMeshDesc convexDesc;
+        convexDesc.points.count = (PxU32)mesh->vertices.size();
+        convexDesc.points.stride = sizeof(Vertex);
+        convexDesc.points.data = mesh->vertices.data();
+        convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
+
+        PxDefaultMemoryOutputStream writeBuffer;
+
+        if (!PxCookConvexMesh(params, convexDesc, writeBuffer))
+            return;
+
+        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+        mesh->convexMesh = gPhysics->createConvexMesh(readBuffer);
+    }
+
+#else
+    {
+        PxTriangleMeshDesc meshDesc;
+        meshDesc.points.count = (PxU32)mesh->vertices.size();
+        meshDesc.points.stride = sizeof(Vertex);
+        meshDesc.points.data = mesh->vertices.data();
+
+        meshDesc.triangles.count = (PxU32)mesh->indices.size() / 3;
+        meshDesc.triangles.stride = sizeof(uint32_t) * 3;
+        meshDesc.triangles.data = mesh->indices.data();
+
+        PxDefaultMemoryOutputStream writeBuffer;
+
+        if (!mCooking->cookTriangleMesh(meshDesc, writeBuffer))
+            return;
+
+        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+        mesh->triMesh = gPhysics->createTriangleMesh(readBuffer);
+    }
+
+    {
+        PxConvexMeshDesc convexDesc;
+        convexDesc.points.count = (PxU32)mesh->vertices.size();
+        convexDesc.points.stride = sizeof(Vertex);
+        convexDesc.points.data = mesh->vertices.data();
+        convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
+
+        PxDefaultMemoryOutputStream writeBuffer;
+
+        if (!mCooking->cookConvexMesh(convexDesc, writeBuffer))
+            return;
+
+        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+        mesh->convexMesh = gPhysics->createConvexMesh(readBuffer);
+    }
+
+#endif
+}
+
+void Engine::renderPhysXDebug(bool state) {
+    visualizePhysX = state;
 }

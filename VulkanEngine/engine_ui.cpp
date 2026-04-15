@@ -54,7 +54,7 @@ void Engine::InitImGui(
     ImGui_ImplVulkan_Init(&init_info);
 }
 
-void Engine::SetUICallback(std::function<void()> callback) { 
+void Engine::SetUICallback(std::function<void(Engine* engine)> callback) { 
     uiCallback = callback; 
 }
 
@@ -107,4 +107,76 @@ bool UI::InputFloat3(const char* label, Vector3& v, float speed)
     }
 
     return changed;
+}
+
+void UI::SetNextWindowPos(Vector2 pos) {
+    //TODO: expose flags
+    ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Always);
+}
+
+void UI::SetNextWindowSize(Vector2 size) {
+    ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Always);
+}
+
+void UI::AddFontFromFileTTF(UIFont& font, const char* fontName, float size) {
+    ImGuiIO& io = ImGui::GetIO();
+    font.font = io.Fonts->AddFontFromFileTTF(fontName, size);
+    io.Fonts->Build();
+}
+
+void UI::PushFont(UIFont& font) {
+    ImGui::PushFont(font.font);
+}
+
+void UI::PopFont() {
+    ImGui::PopFont();
+}
+
+// === DEBUG ===
+
+ImVec2 WorldToScreen(const physx::PxVec3& worldPos, const glm::mat4& viewProj, float width, float height) {
+    glm::vec4 clipSpace = viewProj * glm::vec4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+    if (clipSpace.w <= 0.0f) return ImVec2(-1, -1);
+
+    glm::vec3 ndc = glm::vec3(clipSpace) / clipSpace.w;
+    return ImVec2(
+        (ndc.x + 1.0f) * 0.5f * width,
+        (1.0f - ndc.y) * 0.5f * height
+    );
+}
+
+physx::PxVec3 Vec3ToPx(Vector3& v) {
+    return physx::PxVec3(v.x, v.y, v.z);
+}
+
+void Engine::renderPhysXDebug(const glm::mat4& viewProjMatrix, float screenWidth, float screenHeight) {
+    const PxRenderBuffer& rb = gScene->getRenderBuffer();
+    ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+
+    for (PxU32 i = 0; i < rb.getNbLines(); i++) {
+        const PxDebugLine& line = rb.getLines()[i];
+
+        ImVec2 p0 = WorldToScreen(line.pos0, viewProjMatrix, screenWidth, screenHeight);
+        ImVec2 p1 = WorldToScreen(line.pos1, viewProjMatrix, screenWidth, screenHeight);
+
+        if (p0.x != -1 && p1.x != -1) {
+            drawList->AddLine(p0, p1, IM_COL32(0, 255, 0, 255), 1.0f);
+        }
+    }
+
+    for (auto& r : gRayDebugs)
+    {
+        ImVec2 p0 = WorldToScreen(Vec3ToPx(r.origin), viewProjMatrix, screenWidth, screenHeight);
+        ImVec2 p1 = WorldToScreen(Vec3ToPx(r.hitOrEnd), viewProjMatrix, screenWidth, screenHeight);
+
+        if (p0.x == -1 || p1.x == -1) continue;
+
+        ImU32 color = r.hit ? IM_COL32(0, 0, 255, 255)
+            : IM_COL32(255, 0, 0, 255);
+
+        drawList->AddLine(p0, p1, color, 2.0f);
+
+        if (r.hit)
+            drawList->AddCircleFilled(p1, 4.0f, color);
+    }
 }

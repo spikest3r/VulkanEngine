@@ -288,6 +288,13 @@ struct NearFarPlanes {
     float farPlane;
 };
 
+struct RayDebug
+{
+    Vector3 origin;
+    Vector3 hitOrEnd;
+    bool hit;
+};
+
 struct GamepadState {
     unsigned char buttons[15];
     float axes[6];

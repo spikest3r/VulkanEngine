@@ -93,6 +93,7 @@ public:
 	ENGINE_API void exit();
 
 	ENGINE_API void getCameraVectors(Vector3& forward, Vector3& right);
+	ENGINE_API Vector2 getExtents();
 
 	static ENGINE_API Engine* Create(); // Static factory
 	static ENGINE_API void Destroy(Engine* instance);
@@ -118,6 +119,9 @@ public:
 	Vector3 cameraRotation = { 0.0f, -90.0f, 0.0f }; // Point toward the scene
 	Vector3 cameraOffset = {0.0f,0.0f,0.0f};
 	NearFarPlanes planes = { 0.1f, 100.f };
+	
+	ENGINE_API void renderPhysXDebug(bool state);
+	ENGINE_API void pushRayDebug(RayDebug rd);
 
 	ENGINE_API ICharacterController* createCharacterController(float height, float radius, Vector3 position, PhysicsMaterial* material, bool interactWithActors);
 	ENGINE_API PhysicsMaterial* createPhysicsMaterial(float staticFriction, float dynamicFriction, float restitution);
@@ -140,7 +144,7 @@ public:
 
 	ENGINE_API void setCursorMode(CursorMode mode);
 
-	ENGINE_API void SetUICallback(std::function<void()> callback);
+	ENGINE_API void SetUICallback(std::function<void(Engine* engine)> callback);
 	ENGINE_API std::vector<VRAMStats> getVRAMStats();
 
 	ENGINE_API void loadScene(Scene* scene);
@@ -469,6 +473,7 @@ private:
 	size_t dynamicAlignment;
 
 	// PhysX
+	bool visualizePhysX = false;
 	PxDefaultAllocator      gAllocator;
 	PxDefaultErrorCallback  gErrorCallback;
 	PxFoundation* gFoundation = nullptr;
@@ -502,7 +507,7 @@ private:
 
 	// imgui
 	VkDescriptorPool imguiPool;
-	std::function<void()> uiCallback = nullptr;
+	std::function<void(Engine* engine)> uiCallback = nullptr;
 	void InitImGui(
 		GLFWwindow* window,
 		VkInstance instance,
@@ -548,6 +553,10 @@ private:
 	// DualSense support
 	void readDualSenseState();
 	GamepadState gamepadState;
+
+	// debug
+	std::vector<RayDebug> gRayDebugs;
+	void renderPhysXDebug(const glm::mat4& viewProjMatrix, float screenWidth, float screenHeight);
 };
 
 // misc

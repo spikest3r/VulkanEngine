@@ -226,100 +226,6 @@ Engine* Engine::Create() {
 void Engine::Destroy(Engine* instance) {
 	delete instance;
 }
-
-void Engine::cookMesh(Mesh* mesh) {
-
-#ifdef _WIN32
-	PxCookingParams params(gPhysics->getTolerancesScale());
-
-	std::cout << "Vertex count: " << mesh->vertices.size() << std::endl;
-	std::cout << "Index count: " << mesh->indices.size() << std::endl;
-
-	for (int i = 0; i < 5; i++) {
-		auto& v = mesh->vertices[i];
-		std::cout << "v" << i << ": " << v.pos.x << " " << v.pos.y << " " << v.pos.z << std::endl;
-	}
-
-	{
-		PxTriangleMeshDesc meshDesc;
-		std::vector<PxVec3> pxVerts;
-		pxVerts.reserve(mesh->vertices.size());
-		for (auto& v : mesh->vertices) {
-			pxVerts.push_back(PxVec3(v.pos.x, v.pos.y, v.pos.z));
-		}
-
-		// Then use pxVerts for cooking:
-		meshDesc.points.count = (PxU32)pxVerts.size();
-		meshDesc.points.stride = sizeof(PxVec3);
-		meshDesc.points.data = pxVerts.data();
-
-		meshDesc.triangles.count = (PxU32)mesh->indices.size() / 3;
-		meshDesc.triangles.stride = sizeof(uint32_t) * 3;
-		meshDesc.triangles.data = mesh->indices.data();
-
-		PxDefaultMemoryOutputStream writeBuffer;
-
-		if (!PxCookTriangleMesh(params, meshDesc, writeBuffer))
-			return;
-
-		PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-		mesh->triMesh = gPhysics->createTriangleMesh(readBuffer);
-	}
-
-	{
-		PxConvexMeshDesc convexDesc;
-		convexDesc.points.count = (PxU32)mesh->vertices.size();
-		convexDesc.points.stride = sizeof(Vertex);
-		convexDesc.points.data = mesh->vertices.data();
-		convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
-
-		PxDefaultMemoryOutputStream writeBuffer;
-
-		if (!PxCookConvexMesh(params, convexDesc, writeBuffer))
-			return;
-
-		PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-		mesh->convexMesh = gPhysics->createConvexMesh(readBuffer);
-	}
-
-#else
-	{
-		PxTriangleMeshDesc meshDesc;
-		meshDesc.points.count = (PxU32)mesh->vertices.size();
-		meshDesc.points.stride = sizeof(Vertex);
-		meshDesc.points.data = mesh->vertices.data();
-
-		meshDesc.triangles.count = (PxU32)mesh->indices.size() / 3;
-		meshDesc.triangles.stride = sizeof(uint32_t) * 3;
-		meshDesc.triangles.data = mesh->indices.data();
-
-		PxDefaultMemoryOutputStream writeBuffer;
-
-		if (!mCooking->cookTriangleMesh(meshDesc, writeBuffer))
-			return;
-
-		PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-		mesh->triMesh = gPhysics->createTriangleMesh(readBuffer);
-	}
-
-	{
-		PxConvexMeshDesc convexDesc;
-		convexDesc.points.count = (PxU32)mesh->vertices.size();
-		convexDesc.points.stride = sizeof(Vertex);
-		convexDesc.points.data = mesh->vertices.data();
-		convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
-
-		PxDefaultMemoryOutputStream writeBuffer;
-
-		if (!mCooking->cookConvexMesh(convexDesc, writeBuffer))
-			return;
-
-		PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-		mesh->convexMesh = gPhysics->createConvexMesh(readBuffer);
-	}
-
-#endif
-}
  
 Mesh* Engine::createMesh(std::string name, const char* path) {
 	if (resources.contains(name))
@@ -384,4 +290,8 @@ VkDevice* Engine::getVkDevicePtr() {
 
 void Engine::setClearColor(Vector3 clearColor) {
 	vecClearColor = clearColor;
+}
+
+Vector2 Engine::getExtents() {
+	return { (float)swapChainExtent.width, (float)swapChainExtent.height };
 }

@@ -298,3 +298,11 @@ struct GamepadState {
 #define GAMEPAD_AXIS_LEFT_TRIGGER  4
 #define GAMEPAD_AXIS_RIGHT_TRIGGER 5
 #define GAMEPAD_AXIS_LAST          GAMEPAD_AXIS_RIGHT_TRIGGER
+};
+
+struct RayDebug
+{
+    Vector3 origin;
+    Vector3 hitOrEnd;
+    bool hit;
+};

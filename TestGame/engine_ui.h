@@ -2,6 +2,10 @@
 
 #include "engine_types.h"
 
+class ENGINE_API UIFont {
+
+};
+
 class ENGINE_API UI {
 public:
 	static void Begin(const char* name);
@@ -12,4 +16,9 @@ public:
 	static void ProgressBar(float value, Vector2 vec);
 	static bool TextField(const char* label, char* buffer, size_t size, bool disallowBlank = false);
 	static bool InputFloat3(const char* label, Vector3& v, float speed = 0.1f);
+	static void SetNextWindowSize(Vector2 size);
+	static void SetNextWindowPos(Vector2 pos);
+	static void AddFontFromFileTTF(UIFont& font, const char* fontName, float size);
+	static void PushFont(UIFont& font);
+	static void PopFont();
 };

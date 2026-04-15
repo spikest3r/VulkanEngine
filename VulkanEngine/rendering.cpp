@@ -50,6 +50,12 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 		i++;
 	}
 
+	if (visualizePhysX) {
+		auto proj = getProjectionMatrix();
+		proj[1][1] *= -1;
+		renderPhysXDebug(proj * getViewMatrix(), swapChainExtent.width, swapChainExtent.height);
+	}
+
 	// Render UI
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -90,7 +96,7 @@ void Engine::drawFrame() {
 	ImGui::NewFrame();
 
 	if (uiCallback) {
-        uiCallback(); 
+        uiCallback(this); 
     }
 
 	// --- RECORD & SUBMIT ---
