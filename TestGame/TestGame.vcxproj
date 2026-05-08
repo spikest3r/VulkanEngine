@@ -149,12 +149,13 @@
     <ClInclude Include="charactercontroller.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="engine_types.h" />
-    <ClInclude Include="engine_ui.h" />
+    <ClInclude Include="engine_tool_ui.h" />
     <ClInclude Include="gameobject.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shapes.h" />
     <ClInclude Include="sound.h" />
     <ClInclude Include="texture.h" />
+    <ClInclude Include="ui.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

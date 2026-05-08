@@ -4,7 +4,7 @@
 #include "shapes.h"
 #include <cstring>
 #include <fstream>
-#include "engine_ui.h"
+#include "engine_tool_ui.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -150,17 +150,17 @@ void GameScene::InitScene(Engine* engine) {
 
 	portalTrigger = engine->createBoxTrigger({ -13.35f,7.05f,4.65f }, { 1.22f,2.8f,3.5f });
 	bool portalTextureState = false;
-	portalTrigger->onTriggerEnter = [this, cubeTex, cubeTex2, &portalTextureState](GameObject* other) {
+	portalTrigger->onTriggerEnter = [this, cubeTex, cubeTex2, &portalTextureState, engine](GameObject* other) {
 		if (other->tag == "Puppet") {
 			assert(other != nullptr);
 			auto ptr = dynamic_cast<Puppet*>(other);
 			if (ptr) {
 				ptr->playSound(magic, 1.0f);
-				engine->playHaptics(magic, 1.0f);
+				engine->dualsense_playHaptics(magic, 1.0f);
 				ptr->ToggleTexture();
 			}
 		}
-		};
+	};
 
 	triggerSuccess1 = engine->createBoxTrigger({ 13.f,13.f,13.f }, { 2.7f,2.7f,2.7f });
 	triggerSuccess1->onTriggerEnter = [engine/*, scene*/](GameObject* other) {
@@ -213,12 +213,11 @@ void GameScene::UpdateScene(Engine* engine) {
 
 	// clamp pitch
 	if (pitch > 89.0f)  pitch = 89.0f;
-			if (pitch < -89.0f) pitch = -89.0f;
+	if (pitch < -89.0f) pitch = -89.0f;
 
 	// apply camera rotation
-			engine->cameraRotation.x = pitch;
-			engine->cameraRotation.y = yaw;
-		}
+	engine->cameraRotation.x = pitch;
+	engine->cameraRotation.y = yaw;
 
 	// update camera basis vectors
 		engine->getCameraVectors(forward, right);
@@ -371,12 +370,13 @@ void GameScene::UpdateScene(Engine* engine) {
 
 			Vector3 spawnPos = camPos + forward * 1.5f;
 
-			obj->setPosition(spawnPos);
+			obj->transform.position = (spawnPos);
+			obj->updateTransform();
 
 			// shoot forward
 			obj->applyForce(forward, 600.0f);
 
-			engine->playHaptics(spawn, 0.8f);
+			engine->dualsense_playHaptics(spawn, 0.8f);
 		}
 	}
 	else {
@@ -391,7 +391,7 @@ void GameScene::UpdateScene(Engine* engine) {
 
 			scene->clearPuppets();
 
-			engine->playHaptics(destroy, 1.0f);
+			engine->dualsense_playHaptics(destroy, 1.0f);
 		}
 	}
 	else {
@@ -411,18 +411,18 @@ void GameScene::UpdateScene(Engine* engine) {
 		reloadPressed = false;
 	}
 
-	//if (engine->getKey(KeyCode::X) == PRESS) {
-	//	if (!xKey) {
-	//		xKey = true;
-	//		uiVisible = !uiVisible;
-	//		engine->setCursorMode(uiVisible ? NORMAL : DISABLED);
-	//		GameScene* currentScene = static_cast<GameScene*>(engine->getActiveScene());
-	//		currentScene->SetMouseFirst(); // firstMouse = true;
-	//	}
-	//}
-	//else {
-	//	xKey = false;
-	//}
+	if (engine->getKey(KeyCode::X) == PRESS) {
+		if (!xKey) {
+			xKey = true;
+			uiVisible = !uiVisible;
+			engine->setCursorMode(uiVisible ? NORMAL : DISABLED);
+			GameScene* currentScene = static_cast<GameScene*>(engine->getActiveScene());
+			currentScene->SetMouseFirst(); // firstMouse = true;
+		}
+	}
+	else {
+		xKey = false;
+	}
 }
 
 void Puppet::Start() {
@@ -456,38 +456,38 @@ void GameScene::clearPuppets() {
 }
 
 void GameUI() {
-	UI::Begin("Game Settings");
-	if (UI::Button("Spawn Cube")) {
+	ToolUI::Begin("Game Settings");
+	if (ToolUI::Button("Spawn Cube")) {
 		static_cast<GameScene*>(engine->getActiveScene())->createPuppet();
 	}
-	if (UI::Button("Erase all")) {
+	if (ToolUI::Button("Erase all")) {
 		static_cast<GameScene*>(engine->getActiveScene())->clearPuppets();
 	}
-	if (UI::Button("Reload scene")) {
+	if (ToolUI::Button("Reload scene")) {
 		auto scene = engine->getActiveScene();
 		engine->loadScene(scene);
 	}
-	UI::End();
+	ToolUI::End();
 }
 
 void MainUI(Engine* engine) {
 	if (uiVisible) GameUI();
 
-	UI::Begin("Engine Monitor");
+	ToolUI::Begin("Engine Monitor");
 
 	auto vramData = engine->getVRAMStats();
 	for (const auto& heap : vramData) {
 		char buffer1[128];
 		sprintf_s(buffer1, 128, "VRAM Heap %u", heap.heapIndex);
-		UI::Text(buffer1);
-		UI::ProgressBar(heap.usageMB / heap.budgetMB, Vector2(0.0f, 0.0f));
-		UI::SameLine();
+		ToolUI::Text(buffer1);
+		ToolUI::ProgressBar(heap.usageMB / heap.budgetMB, Vector2(0.0f, 0.0f));
+		ToolUI::SameLine();
 		char buffer2[128];
 		sprintf_s(buffer2, 128, "%.1f / %.1f MB", heap.usageMB, heap.budgetMB);
-		UI::Text(buffer2);
+		ToolUI::Text(buffer2);
 	}
 
-	UI::End();
+	ToolUI::End();
 }
 
 int main() {
@@ -519,6 +519,11 @@ int main() {
 
 	Vector3 forward = { 0.0f, 0.0f, 0.0f };
 	Vector3 right = { 0.0f, 0.0f, 0.0f };
+
+	// test ui element
+	Texture* tex = engine->createTexture("Crosshair_03", "Crosshair_03.png");
+	UIElement* element = engine->createUIElement(tex, { 400.0f, 300.0f }, { 200.0f, 200.0f });
+	// should render
 
 	while (engine->running()) {
 		engine->update();

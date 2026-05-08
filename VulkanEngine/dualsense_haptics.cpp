@@ -174,8 +174,9 @@ void Engine::AudioRenderThread() {
     }
 }
 
-void Engine::playHaptics(Sound* sound, float volume) {
+void Engine::dualsense_playHaptics(Sound* sound, float volume) {
     // TODO: Track haptics channel (perhaps make channels returnable for whole stack)
+    if (!isDualSenseAttached()) return;
     FMOD::Channel* ch;
     system->playSound(sound->sound, hapticGroup, false, &ch); // untracked
     ch->setVolume(volume);

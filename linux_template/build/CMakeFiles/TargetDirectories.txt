@@ -1,3 +1,0 @@
-/home/oleh/engine/VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa/linux_template/build/CMakeFiles/TestGame.dir
-/home/oleh/engine/VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa/linux_template/build/CMakeFiles/edit_cache.dir
-/home/oleh/engine/VulkanEngine-65b374bc2e12a985c3385b342ba707b8312c78aa/linux_template/build/CMakeFiles/rebuild_cache.dir

@@ -17,9 +17,9 @@ layout(binding = 0) uniform UBO {
 
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPos, 1.0);
-    
-    // Pass the normal (inColor) to the fragment shader
-    // Note: In a real app, you'd want to transform normals by the model matrix too.
-    fragNormal = inColor; 
+
+    mat3 normalMatrix = transpose(inverse(mat3(ubo.model)));
+    fragNormal = normalize(normalMatrix * inColor);
+     
     fragTexCoord = inTexCoord;
 }

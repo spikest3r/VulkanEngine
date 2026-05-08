@@ -12,6 +12,8 @@ class ENGINE_API Mesh : public IResource {
 	friend class Model;
 	friend class Engine;
 private:
+	bool engineMember = false; // prevent cleanup on reload unless exit
+
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 

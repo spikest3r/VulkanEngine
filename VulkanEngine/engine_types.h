@@ -332,6 +332,13 @@ struct GamepadState {
 
 // internal
 
+struct LightPushConstants {
+    glm::vec3 lightPos;   // direction for directional light
+    float     ambient;
+    glm::vec3 lightColor;
+    uint32_t  unlit;
+};
+
 struct TimerCompare
 {
     bool operator()(const EventTimer& a, const EventTimer& b) const

@@ -57,6 +57,9 @@ void PhysicsEventListener::onContact(const PxContactPairHeader& pairHeader, cons
 
 void PhysicsEventListener::onTrigger(PxTriggerPair* pairs, PxU32 count) {
     for (PxU32 i = 0; i < count; i++) {
+        if (pairs[i].flags & (PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER |
+            PxTriggerPairFlag::eREMOVED_SHAPE_OTHER)) continue;
+
         // Use the base class pointer first to avoid casting issues
         Trigger* triggerBase = static_cast<Trigger*>(pairs[i].triggerActor->userData);
         GameObject* otherObj = static_cast<GameObject*>(pairs[i].otherActor->userData);
@@ -67,6 +70,11 @@ void PhysicsEventListener::onTrigger(PxTriggerPair* pairs, PxU32 count) {
         if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_FOUND) {
             if (triggerBase->onTriggerEnter) {
                 triggerBase->onTriggerEnter(otherObj);
+            }
+        }
+        else if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_LOST) {
+            if (triggerBase->onTriggerExit) {
+                triggerBase->onTriggerExit(otherObj);
             }
         }
     }
@@ -132,21 +140,50 @@ void Engine::initPhysX() {
 RaycastHit Engine::raycast(Vector3 origin, Vector3 direction, float distance) {
     RaycastHit result = { -1.0f, nullptr };
 
-    // 1. Convert your custom Vector3 to PhysX types
     physx::PxVec3 pxOrigin(origin.x, origin.y, origin.z);
     physx::PxVec3 pxDir(direction.x, direction.y, direction.z);
-    pxDir.normalize(); // Crucial for accurate PhysX raycasting
+    pxDir.normalize();
 
-    // 2. Prepare the hit buffer
     physx::PxRaycastBuffer hit;
 
-    // 3. Launch the raycast
-    bool status = gScene->raycast(pxOrigin, pxDir, distance, hit);
+    // Filter out trigger shapes
+    physx::PxQueryFilterData filterData;
+    filterData.flags = physx::PxQueryFlag::eSTATIC
+        | physx::PxQueryFlag::eDYNAMIC
+        | physx::PxQueryFlag::ePREFILTER;
+
+    // Custom filter callback to reject trigger shapes
+    struct TriggerFilter : physx::PxQueryFilterCallback {
+        physx::PxQueryHitType::Enum preFilter(
+            const physx::PxFilterData&,
+            const physx::PxShape* shape,
+            const physx::PxRigidActor*,
+            physx::PxHitFlags&) override
+        {
+            // Skip any shape flagged as a trigger
+            if (shape->getFlags() & physx::PxShapeFlag::eTRIGGER_SHAPE)
+                return physx::PxQueryHitType::eNONE;
+
+            return physx::PxQueryHitType::eBLOCK;
+        }
+
+        physx::PxQueryHitType::Enum postFilter(
+            const physx::PxFilterData&,
+            const physx::PxQueryHit&,
+            const physx::PxShape*,
+            const physx::PxRigidActor*) override
+        {
+            return physx::PxQueryHitType::eBLOCK;
+        }
+    } triggerFilter;
+
+    bool status = gScene->raycast(pxOrigin, pxDir, distance, hit,
+        physx::PxHitFlag::eDEFAULT,
+        filterData, &triggerFilter);
 
     if (status && hit.hasBlock) {
         result.distance = hit.block.distance;
 
-        // 4. Retrieve the actor and cast the userPtr back to GameObject
         physx::PxRigidActor* actor = hit.block.actor;
         if (actor && actor->userData) {
             result.object = static_cast<GameObject*>(actor->userData);
@@ -240,11 +277,11 @@ void Engine::checkTriggerDestroy() {
     while (!triggerDestroyQueue.empty()) {
         auto& res = triggerDestroyQueue.front();
 
+        res->onTriggerEnter = nullptr;
+        res->onTriggerExit = nullptr;
+
         gScene->removeActor(*(res->physicsActor));
         res->physicsActor->release();
-
-        std::function<void(GameObject* other)>().swap(res->onTriggerEnter);
-        std::function<void(GameObject* other)>().swap(res->onTriggerExit);
 
         triggerDestroyQueue.pop();
     }

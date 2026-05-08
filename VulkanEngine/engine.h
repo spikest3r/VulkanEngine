@@ -72,6 +72,7 @@
 #include <type_traits>
 
 #include "scene.h"
+#include "ui.h"
 
 #include <windows.h>
 #include <mmdeviceapi.h>
@@ -109,6 +110,7 @@ public:
 	ENGINE_API Mesh* getMesh(std::string name);
 	ENGINE_API Sound* getSound(std::string name);
 	ENGINE_API Scene* getScene(std::string sceneFile);
+	ENGINE_API GameObject* getGameObject(std::string name);
 
 	ENGINE_API KeyState getKey(KeyCode code);
 	ENGINE_API KeyState getMouseButton(MouseButton button);
@@ -152,6 +154,11 @@ public:
 	ENGINE_API void unloadActiveScene();
 	ENGINE_API Scene* getActiveScene();
 	ENGINE_API void updateScene();
+
+	ENGINE_API void setLightPosition(Vector3 pos);
+
+	// TODO: Template
+	ENGINE_API UIElement* createUIElement(Texture* texture, Vector2 pos, Vector2 size);
 
 	template <typename T>
 	T* createGameObject(
@@ -248,18 +255,24 @@ public:
 	ENGINE_API static void* requestMemory(size_t size);
 	ENGINE_API static void freeMemory(void* ptr);
 
-	ENGINE_API void playHaptics(Sound* sound, float volume);
+	ENGINE_API void dualsense_playHaptics(Sound* sound, float volume);
+	ENGINE_API void dualsense_setLightbarColor(unsigned char R, unsigned char G, unsigned char B);
+	ENGINE_API bool isDualSenseAttached();
 
 	ENGINE_API GamepadState* getGamepad();
+
+	ENGINE_API bool isLastFrame();
 
 	// engine internal
 	void playSound(Sound* sound, FMOD::ChannelGroup* group, FMOD::Channel** channel, bool startPaused);
 	VkDevice* getVkDevicePtr();
-	void updateGameObjectDescriptorSet(GameObject& obj, VkImageView textureImageView);
+	void updateGameObjectDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView);
 	PhysicsMaterial* getDefaultMaterial() { return eDefaultMaterial; }
 	void forceDestroy();
 private:
 	Engine() {};
+
+	void OnError_Handler(std::string errorString);
 
 	template <typename T>
 	static void destroyImpl(void* p) {
@@ -346,6 +359,8 @@ private:
 	VkCommandPool commandPool;
 	VkSampler textureSampler;
 
+	LightPushConstants lightSettings;
+
 	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -361,6 +376,7 @@ private:
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
 	VkDescriptorPool descriptorPool;
+	size_t uboSize_T;
 
 	// Camera
 	glm::vec3 camPos = { 0.f, 1.f, 3.f };
@@ -376,7 +392,7 @@ private:
 	void populateObjectBuffer(ObjectBuffer& buffer, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
 	std::vector<GameObject*> gameObjects;
 	int objectsAllocated = 0;
-	void createGameObjectDescriptorSet(GameObject& obj, VkImageView textureImageView);
+	void createVkDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView);
 	void cleanupGameObject(GameObject* object);
 
 	// Resource Management
@@ -528,6 +544,14 @@ private:
 	bool shouldLoadScene = false;
 	std::unordered_map<std::string, Scene*> sceneMap;
 
+	// Engine UI Layer
+	void initUILayer();
+	//void cleanupUILayer();
+	std::vector<UIElement*> uiElements;
+	Mesh* uiQuad = nullptr;
+
+	// === DUALSENSE ===
+
 	// FMOD DualSense haptics
 	FMOD::ChannelGroup* hapticGroup = nullptr;
 	static FMOD_RESULT PCMGrabDSP(FMOD_DSP_STATE* state, float* inbuffer, float* outbuffer,
@@ -550,8 +574,15 @@ private:
 	void AudioRenderThread(); // dsp sync
 	std::thread mAudioThread;
 
-	// DualSense support
-	void readDualSenseState();
+	// Dualsense RGB
+	void initDSRGB();
+	HANDLE dsHID;
+	bool dsPresent = false;
+
+	// === END DUALSENSE ===
+
+	// Gamepad support
+	void readGlfwGamePadState();
 	GamepadState gamepadState;
 
 	// debug

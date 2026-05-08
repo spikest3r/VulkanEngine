@@ -59,7 +59,9 @@ void Engine::createTextureImage(const char* texName, VkImage& texture, VkDeviceM
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
-		throw std::runtime_error("failed to load texture image!");
+		char errorBuffer[1024];
+		sprintf_s(errorBuffer, 1024, "Failed to load texture image %s", texName);
+		OnError_Handler(errorBuffer);
 	}
 
 	VkBuffer stagingBuffer;

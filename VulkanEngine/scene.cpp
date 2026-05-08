@@ -41,6 +41,10 @@ static std::vector<std::string> Split(const std::string& line) {
     return tokens;
 }
 
+void Scene::EarlyInitScene(Engine* engine) {
+
+}
+
 void Scene::InitScene(Engine* engine) {
 	// base scene initialized
 }
@@ -95,6 +99,11 @@ bool Engine::loadScene_internal(Scene* scene, const char* sceneFile)
 
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << sceneFile << "\n";
+
+        char errorBuffer[1024];
+        sprintf_s(errorBuffer, 1024, "Failed to load scene %s", sceneFile);
+        OnError_Handler(errorBuffer);
+
         return false;
     }
 
@@ -270,7 +279,14 @@ void Engine::cleanupState() {
     }
 
     for (auto& mesh : meshes) {
+        if (mesh->engineMember) continue;
         requestDestroy(mesh);
+    }
+
+    for (auto& element : uiElements) {
+        // TODO: INTO QUEUE
+        // THIS IS NOT READY FOR A PROD!
+        uiElements.pop_back();
     }
 }
 
@@ -279,6 +295,8 @@ void Engine::loadScene(Scene* scene) {
     if(activeScene) unloadActiveScene();
 
     forceDestroy();
+
+    scene->EarlyInitScene(this);
 
     for (auto& mesh : scene->sceneMeshes) {
         createMesh(mesh.name, mesh.fileName.c_str());
@@ -308,6 +326,7 @@ void Engine::loadScene(Scene* scene) {
 
 void Engine::unloadActiveScene() {
     if (activeScene) {
+        vkDeviceWaitIdle(device);
         activeScene->DestroyScene(this);
     }
 

@@ -24,8 +24,7 @@ void Model::loadModel(const std::string& path) {
         aiProcess_JoinIdenticalVertices);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        // TODO: Assimp error handling
-        return;
+        throw std::runtime_error("failed to load mesh");
     }
     directory = path.substr(0, path.find_last_of('/'));
     processNode(scene->mRootNode, scene);
@@ -48,7 +47,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
 
-        vertex.pos = glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, 1.0f);
+        vertex.pos = glm::vec4(mesh->mVertices[i].x, -mesh->mVertices[i].z, mesh->mVertices[i].y, 1.0f);
 
         if (mesh->HasNormals()) {
             vertex.color = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);

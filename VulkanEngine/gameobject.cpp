@@ -56,7 +56,7 @@ void Engine::internal_createGameObject(
     ptr->id = gameObjectID++;
 
     // Vulkan & FMOD
-    if(mesh) createGameObjectDescriptorSet(*ptr, texture->imageView);
+    if(mesh) createVkDescriptorSet(ptr->descriptorSet, texture->imageView);
 
     // Reuse or create ChannelGroup
     std::string groupName = "ObjGroup_" + std::to_string(gameObjectID); // Use index as ID
@@ -90,17 +90,20 @@ void Engine::internal_createGameObject(
             dyn->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
             dyn->wakeUp();
         }
+
+        ptr->updateTransform(); // apply all transformations
     }
 
     if(!mesh) ptr->skip = true;
 
     gameObjects.push_back(ptr);
 
-    updateUniformBuffer(currentFrame);
+    for (int f = 0; f < MAX_FRAMES_IN_FLIGHT; f++)
+        updateUniformBuffer(f);
 }
 
 void GameObject::updateTexture(Texture* newTexture) {
-    engPtr->updateGameObjectDescriptorSet(*this, newTexture->imageView);
+    engPtr->updateGameObjectDescriptorSet(this->descriptorSet, newTexture->imageView);
 }
 
 void GameObject::playSound(Sound* sound, float volume)
@@ -247,6 +250,9 @@ void Engine::cleanupGameObject(GameObject* object)
     // 4. Vulkan cleanup
     vkFreeDescriptorSets(device, descriptorPool, 1, &object->descriptorSet);
 
+    for (int f = 0; f < MAX_FRAMES_IN_FLIGHT; f++)
+        updateUniformBuffer(f);
+
     // 5. memory free LAST
     ObjectHeader* h = getHeader(object);
     h->destroy(object);
@@ -277,20 +283,35 @@ void GameObject::setPhysicsType(PhysicsType type) {
     }
 }
 
-void GameObject::setPosition(Vector3 position) {
+void GameObject::updateTransform() {
     if (!physicsActor) return;
 
-    transform.position = position;
+    Vector3 position = transform.position;
+    Quaternion rotation = transform.rotation;
 
-    physx::PxTransform newPose(physx::PxVec3(position.x, position.y, position.z), physicsActor->getGlobalPose().q);
+    physx::PxQuat pxRot(rotation.x, rotation.y, rotation.z, rotation.w);
+
+    physx::PxTransform newPose(
+        physx::PxVec3(position.x, position.y, position.z),
+        pxRot
+    );
 
     physx::PxRigidDynamic* dynamicActor = physicsActor->is<physx::PxRigidDynamic>();
-    
+
     if (dynamicActor && (dynamicActor->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC)) {
         dynamicActor->setKinematicTarget(newPose);
-    } else {
+    }
+    else {
         physicsActor->setGlobalPose(newPose);
     }
+}
+
+GameObject* Engine::getGameObject(std::string name) {
+    auto it = std::find_if(gameObjects.begin(), gameObjects.end(), [&](const GameObject* obj) {
+        return obj->name == name;
+    });
+    
+    return it == gameObjects.end() ? nullptr : *it;
 }
 
 uint32_t GameObject::getID() {return id;}

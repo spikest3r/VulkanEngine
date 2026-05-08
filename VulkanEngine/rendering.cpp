@@ -1,6 +1,7 @@
 #include "engine.h"
 
 void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+	// start
 	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 		throw std::runtime_error("failed to begin recording command buffer!");
@@ -28,13 +29,42 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	int i = 0;
-	for (auto& obj: gameObjects) {
-		if(obj->skip) continue;
 
-		VkBuffer vertexBuffers[] = { obj->objBuffer.vertexBuffer };
+	// render game objects
+	for (auto& obj: gameObjects) {
+		if (!obj->skip) {
+
+			VkBuffer vertexBuffers[] = { obj->objBuffer.vertexBuffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, obj->objBuffer.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			uint32_t dynamicOffset = static_cast<uint32_t>(i * dynamicAlignment);
+
+			vkCmdBindDescriptorSets(
+				commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout,
+				0, 1, &obj->descriptorSet,
+				1, &dynamicOffset
+			);
+
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT,
+				0, sizeof(LightPushConstants), &lightSettings);
+
+			vkCmdDrawIndexed(commandBuffer, obj->indexCount, 1, 0, 0, 0);
+		}
+		i++;
+	}
+
+	lightSettings.unlit = true;
+
+	// render ui layer
+	for (auto& element : uiElements) {
+		VkBuffer vertexBuffers[] = { element->buffer.vertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, obj->objBuffer.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, element->buffer.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		uint32_t dynamicOffset = static_cast<uint32_t>(i * dynamicAlignment);
 
@@ -42,14 +72,20 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 			commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout,
-			0, 1, &obj->descriptorSet,
+			0, 1, &element->descSet,
 			1, &dynamicOffset
 		);
 
-		vkCmdDrawIndexed(commandBuffer, obj->indexCount, 1, 0, 0, 0);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT,
+			0, sizeof(LightPushConstants), &lightSettings);
+
+		vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
 		i++;
 	}
 
+	lightSettings.unlit = false;
+
+	// render imgui etc.
 	if (visualizePhysX) {
 		auto proj = getProjectionMatrix();
 		proj[1][1] *= -1;
@@ -60,6 +96,7 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
+	// finish
 	vkCmdEndRenderPass(commandBuffer);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {

@@ -170,12 +170,13 @@ PhysXPvdSDK_static_64.lib;vulkan-1.lib;glfw3.lib;assimp-vc143-mt.lib;fmod_vc.lib
     <ClCompile Include="descriptorsets.cpp" />
     <ClCompile Include="device.cpp" />
     <ClCompile Include="dualsense.cpp" />
+    <ClCompile Include="gamepad.cpp" />
     <ClCompile Include="engine.cpp" />
     <ClCompile Include="engine_helpers.cpp" />
-    <ClCompile Include="engine_ui.cpp" />
+    <ClCompile Include="engine_tool_ui.cpp" />
     <ClCompile Include="gameobject.cpp" />
     <ClCompile Include="graphics_pipeline.cpp" />
-    <ClCompile Include="haptics.cpp" />
+    <ClCompile Include="dualsense_haptics.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
@@ -196,6 +197,7 @@ PhysXPvdSDK_static_64.lib;vulkan-1.lib;glfw3.lib;assimp-vc143-mt.lib;fmod_vc.lib
     <ClCompile Include="swapchain.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="timersys.cpp" />
+    <ClCompile Include="ui_layer.cpp" />
     <ClCompile Include="vkimage.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
@@ -204,7 +206,7 @@ PhysXPvdSDK_static_64.lib;vulkan-1.lib;glfw3.lib;assimp-vc143-mt.lib;fmod_vc.lib
     <ClInclude Include="charactercontroller.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="engine_types.h" />
-    <ClInclude Include="engine_ui.h" />
+    <ClInclude Include="engine_tool_ui.h" />
     <ClInclude Include="gameobject.h" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
@@ -218,6 +220,7 @@ PhysXPvdSDK_static_64.lib;vulkan-1.lib;glfw3.lib;assimp-vc143-mt.lib;fmod_vc.lib
     <ClInclude Include="sound.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="timersys.h" />
+    <ClInclude Include="ui.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -100,9 +100,12 @@ void Engine::createSyncObjects() {
 void Engine::updateUniformBuffer(uint32_t currentFrame) {
 	char* dataPtr = static_cast<char*>(uniformBuffersMapped[currentFrame]);
 
+	memset(dataPtr, 0, uboSize_T);
+
 	int i = 0;
+
 	for (auto& object: gameObjects) {
-		if (!object) continue;
+		if (!object) { i++; continue; }
 
 		size_t offset = i * dynamicAlignment;
 
@@ -112,6 +115,36 @@ void Engine::updateUniformBuffer(uint32_t currentFrame) {
 		object->uboData.model = object->GetModel();
 
 		memcpy(dataPtr + offset, &object->uboData, sizeof(UniformBufferObject));
+
+		i++;
+	}
+
+	for (auto& element : uiElements) {
+		if (!element) continue;
+
+		std::cout << "UI element slot in UBO: " << i << std::endl;
+
+		size_t offset = i * dynamicAlignment;
+
+		glm::mat4 model = glm::mat4(1.0f);
+
+		Vector3 pos = { element->position.x, element->position.y, 1.0f };
+		Vector3 size = { element->size.x, element->size.y, 1.0f };
+		model = glm::translate(model, Vec3toGlm(pos));
+		model = glm::scale(model, Vec3toGlm(size));
+
+		element->ubo.model = model;
+		element->ubo.view = glm::mat4(1.0f);
+
+		glm::mat4 proj = glm::ortho(
+			0.0f, (float)swapChainExtent.width,
+			(float)swapChainExtent.height, 0.0f,
+			-1.0f, 1.0f
+		);
+
+		element->ubo.proj = proj;
+
+		memcpy(dataPtr + offset, &element->ubo, sizeof(UniformBufferObject));
 
 		i++;
 	}

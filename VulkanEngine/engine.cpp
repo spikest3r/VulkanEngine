@@ -26,8 +26,15 @@ void Engine::init(const int width, const int height, const char* title) {
 	// initialize imgui ui
 	InitImGui(window, instance, physicalDevice, device, graphicsQueue, renderPass, MAX_FRAMES_IN_FLIGHT);
 
+	initUILayer();
+
 	// init haptics
 	initHaptics();
+	initDSRGB();
+
+	lightSettings.lightPos = glm::vec3(0.5f, 0.5f, 1.0f);
+	lightSettings.ambient = 0.25f;
+	lightSettings.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 void Engine::initVulkan() {
@@ -60,7 +67,7 @@ bool Engine::running() {
 
 void Engine::update() {
 	glfwPollEvents();
-	readDualSenseState();
+	readGlfwGamePadState();
 
 	float currentTime = glfwGetTime();
 	deltaTime = currentTime - oldTime;
@@ -114,6 +121,10 @@ float Engine::getDeltaTime() {
 void Engine::cleanup() {
 	vkDeviceWaitIdle(device);
 
+	unloadActiveScene();
+
+	//cleanupUILayer();
+
 	ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -131,6 +142,10 @@ void Engine::cleanup() {
 
 	if (mAudioThread.joinable()) {
 		mAudioThread.join(); // Wait for the thread to actually finish
+	}
+
+	if (dsPresent) {
+		CloseHandle(dsHID);
 	}
 
 	// FMOD Cleanup
@@ -233,9 +248,21 @@ Mesh* Engine::createMesh(std::string name, const char* path) {
         throw std::runtime_error("Resource name already used: " + name);
     }
 
-	Model model = Model(path);
+	Model* model;
+
+	try {
+		model = new Model(path);
+	}
+	catch (std::exception ex) {
+		char errorBuffer[1024];
+		sprintf_s(errorBuffer, 1024, "Failed to load mesh %s", path);
+
+		OnError_Handler(errorBuffer);
+		return nullptr;
+	}
+
 	Mesh* mesh = new Mesh();
-	*mesh = std::move(model.meshes[0]);
+	*mesh = std::move(model->meshes[0]);
 	meshes.push_back(mesh);
 
 	createVertexBuffer(mesh->verticesVk, mesh->verticesVkMem, mesh->vertices);
@@ -294,4 +321,25 @@ void Engine::setClearColor(Vector3 clearColor) {
 
 Vector2 Engine::getExtents() {
 	return { (float)swapChainExtent.width, (float)swapChainExtent.height };
+}
+
+void Engine::setLightPosition(Vector3 pos) {
+	lightSettings.lightPos = glm::vec3(pos.x, pos.y, pos.z);
+}
+
+bool Engine::isLastFrame() {
+	return (currentFrame == MAX_FRAMES_IN_FLIGHT - 1);
+}
+
+void Engine::OnError_Handler(std::string errorString) {
+	// TODO: Add custom user handler?
+	char errorBuffer[1024];
+	sprintf_s(errorBuffer, 1024, "A fatal engine error has occured! The application will be terminated.\n%s", errorString.c_str());
+
+#ifdef _WIN32
+	MessageBoxA(NULL, errorBuffer, "Fatal engine error", MB_ICONERROR | MB_OK);
+#endif
+
+	DebugBreak();
+	exit();
 }

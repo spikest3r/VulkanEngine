@@ -52,7 +52,21 @@ ICharacterController* Engine::createCharacterController(float height, float radi
 
     if (playerController->getActor()) {
         auto ptr = static_cast<GameObject*>(newCtrl);
-        playerController->getActor()->userData = ptr;
+        
+        PxRigidActor* actor = playerController->getActor();
+        actor->userData = ptr;
+
+        PxU32 count = actor->getNbShapes();
+        std::vector<PxShape*> shapes(count);
+
+        actor->getShapes(shapes.data(), count);
+        
+        // make character controller ignore raycasts
+        for (auto& shape : shapes) {
+            if (shape) {
+                shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
+            }
+        }
 
         // FIX: init charctrl's fmod handle and other data
         std::string groupName = "ObjGroup_" + std::to_string(gameObjectID);
@@ -105,10 +119,8 @@ void CharacterController::Jump(float force) {
 Vector3 CharacterController::getPosition() {
     if (!playerController) return { 0.0f, 0.0f, 0.0f };
 
-    // PhysX returns PxExtendedVec3 (doubles)
     PxExtendedVec3 physPos = playerController->getPosition();
 
-    // Cast to your engine's Vector3 (floats)
     return {
         static_cast<float>(physPos.x),
         static_cast<float>(physPos.y),

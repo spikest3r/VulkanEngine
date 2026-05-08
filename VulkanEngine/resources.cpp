@@ -70,7 +70,9 @@ Mesh* Engine::getMesh(std::string name) {
     if (it == resources.end())
         return nullptr;
 
-    return dynamic_cast<Mesh*>(it->second);
+	Mesh* mesh = dynamic_cast<Mesh*>(it->second);
+	if (mesh && mesh->engineMember) return nullptr; // do not return engine members
+    return mesh;
 }
 
 Sound* Engine::getSound(std::string name) {

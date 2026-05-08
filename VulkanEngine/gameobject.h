@@ -43,7 +43,7 @@ public:
 	std::string tag;
 
 	void setPhysicsType(PhysicsType type);
-    void setPosition(Vector3 position);
+	void updateTransform();
 
 	uint32_t getID();
 

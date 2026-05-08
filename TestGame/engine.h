@@ -5,7 +5,7 @@
 #include "texture.h"
 #include "sound.h"
 #include "charactercontroller.h"
-
+#include "ui.h"
 #include "scene.h"
 
 class Engine {
@@ -36,6 +36,7 @@ public:
 	ENGINE_API Mesh* getMesh(std::string name);
 	ENGINE_API Sound* getSound(std::string name);
 	ENGINE_API Scene* getScene(std::string sceneFile);
+	ENGINE_API GameObject* getGameObject(std::string name);
 
 	ENGINE_API KeyState getKey(KeyCode code);
 	ENGINE_API KeyState getMouseButton(MouseButton button);
@@ -79,6 +80,10 @@ public:
 	ENGINE_API void unloadActiveScene();
 	ENGINE_API Scene* getActiveScene();
 	ENGINE_API void updateScene();
+
+	ENGINE_API void setLightPosition(Vector3 pos);
+
+	ENGINE_API UIElement* createUIElement(Texture* texture, Vector2 pos, Vector2 size);
 
 	template <typename T>
 	T* createGameObject(
@@ -211,9 +216,13 @@ public:
 	ENGINE_API static void* requestMemory(size_t size);
 	ENGINE_API static void freeMemory(void* ptr);
 
-	ENGINE_API void playHaptics(Sound* sound, float volume);
+	ENGINE_API void dualsense_playHaptics(Sound* sound, float volume);
+	ENGINE_API void dualsense_setLightbarColor(unsigned char R, unsigned char G, unsigned char B);
+	ENGINE_API bool isDualSenseAttached();
 
 	ENGINE_API GamepadState* getGamepad();
+
+	ENGINE_API bool isLastFrame();
 private:
 	template <typename T>
 	static void destroyImpl(void* p) {

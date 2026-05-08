@@ -112,17 +112,24 @@ void Engine::createGraphicsPipeline() {
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
 	// add push constant range to pass object index per draw call
-	VkPushConstantRange pushConst{};
-	pushConst.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	pushConst.offset = 0;
-	pushConst.size = sizeof(uint32_t);
+	//VkPushConstantRange pushConst{};
+	//pushConst.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	//pushConst.offset = 0;
+	//pushConst.size = sizeof(uint32_t);
+
+	VkPushConstantRange ranges[1];
+
+	ranges[0] = {};
+	ranges[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	ranges[0].offset = 0;
+	ranges[0].size = sizeof(LightPushConstants);
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
-	pipelineLayoutInfo.pPushConstantRanges = &pushConst;
+	pipelineLayoutInfo.pPushConstantRanges = ranges;
 
 	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");

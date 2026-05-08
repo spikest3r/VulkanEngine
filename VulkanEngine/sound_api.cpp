@@ -38,6 +38,10 @@ Sound* Engine::createSound(std::string name, const char* path, bool looping, boo
 
     if (result != FMOD_OK) {
         printf("FMOD Error (%d)\n", result);
+
+        char errorBuffer[1024];
+        sprintf_s(errorBuffer, 1024, "Failed to load sound %s", path);
+        OnError_Handler(errorBuffer);
     }
 
     resources[name] = snd;

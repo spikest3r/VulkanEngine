@@ -2,15 +2,20 @@
 
 #include "engine_types.h"
 
-class ENGINE_API UIFont {
+class ENGINE_API ToolUI;
 
+class UIFont {
+	friend class ToolUI;
+private:
+	ImFont* font;
 };
 
-class ENGINE_API UI {
+class ENGINE_API ToolUI {
 public:
 	static void Begin(const char* name);
 	static void End();
 	static bool Button(const char* text);
+	static bool Button(const char* text, Vector2 size);
 	static void Text(const char* text); // todo: args
 	static void SameLine();
 	static void ProgressBar(float value, Vector2 vec);

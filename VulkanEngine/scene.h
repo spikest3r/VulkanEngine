@@ -44,7 +44,13 @@ private:
     std::vector<SceneGameObject, EngineAllocator<SceneGameObject>> sceneGameObjects;
 
 	// custom user logic
-	ENGINE_API virtual void InitScene(Engine* engine);
+    
+    // GameObjects and resources are not loaded
+    ENGINE_API virtual void EarlyInitScene(Engine* engine);
+	
+    // GameObjects and resources are loaded
+    ENGINE_API virtual void InitScene(Engine* engine);
+
     ENGINE_API virtual void UpdateScene(Engine* engine);
     ENGINE_API virtual void DestroyScene(Engine* engine);
 	ENGINE_API virtual GameObject* CreateGameObject(Engine* engine, const char* objectType, const char* tag, const char* name, Transform transform, Mesh* mesh, Texture* texture, bool dynamic);

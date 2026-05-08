@@ -42,7 +42,8 @@ void Engine::createUniformBuffers() {
     dynamicAlignment = getAlignment(sizeof(UniformBufferObject), minAlignment);
 
     // 2. Size the buffer for MANY objects
-    VkDeviceSize bufferSize = dynamicAlignment * MAX_OBJECTS;
+    uboSize_T = dynamicAlignment * MAX_OBJECTS;
+    VkDeviceSize bufferSize = uboSize_T;
 
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
@@ -109,20 +110,20 @@ void Engine::createDescriptorSets(VkImageView& textureImageView, std::vector<VkD
     }
 }
 
-void Engine::createGameObjectDescriptorSet(GameObject& obj, VkImageView textureImageView) {
+void Engine::createVkDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView) {
     VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
     allocInfo.descriptorPool = descriptorPool;
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (vkAllocateDescriptorSets(device, &allocInfo, &obj.descriptorSet) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(device, &allocInfo, &obj) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate object descriptor set!");
     }
 
     updateGameObjectDescriptorSet(obj, textureImageView);
 }
 
-void Engine::updateGameObjectDescriptorSet(GameObject& obj, VkImageView textureImageView) {
+void Engine::updateGameObjectDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView) {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = uniformBuffers[0];
     bufferInfo.offset = 0;
@@ -136,7 +137,7 @@ void Engine::updateGameObjectDescriptorSet(GameObject& obj, VkImageView textureI
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
     // UBO - Dynamic
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = obj.descriptorSet;
+    descriptorWrites[0].dstSet = obj;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     descriptorWrites[0].descriptorCount = 1;
@@ -144,7 +145,7 @@ void Engine::updateGameObjectDescriptorSet(GameObject& obj, VkImageView textureI
 
     // Sampler
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = obj.descriptorSet;
+    descriptorWrites[1].dstSet = obj;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;

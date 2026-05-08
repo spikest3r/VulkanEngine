@@ -22,6 +22,9 @@
     <Filter Include="Source Files\core\controller">
       <UniqueIdentifier>{63099d1a-60b7-4b69-b89d-ed13018574f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\core\ui">
+      <UniqueIdentifier>{0fce4264-542c-4e23-aaf6-128a5aaa9b47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="buffer.cpp">
@@ -120,7 +123,7 @@
     <ClCompile Include="resources.cpp">
       <Filter>Source Files\core</Filter>
     </ClCompile>
-    <ClCompile Include="engine_ui.cpp">
+    <ClCompile Include="engine_tool_ui.cpp">
       <Filter>Source Files\core</Filter>
     </ClCompile>
     <ClCompile Include="timersys.cpp">
@@ -129,10 +132,16 @@
     <ClCompile Include="scene.cpp">
       <Filter>Source Files\core</Filter>
     </ClCompile>
-    <ClCompile Include="dualsense.cpp">
+    <ClCompile Include="gamepad.cpp">
       <Filter>Source Files\core\controller</Filter>
     </ClCompile>
-    <ClCompile Include="haptics.cpp">
+    <ClCompile Include="dualsense_haptics.cpp">
+      <Filter>Source Files\core\controller</Filter>
+    </ClCompile>
+    <ClCompile Include="ui_layer.cpp">
+      <Filter>Source Files\core\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="dualsense.cpp">
       <Filter>Source Files\core\controller</Filter>
     </ClCompile>
   </ItemGroup>
@@ -188,10 +197,13 @@
     <ClInclude Include="timersys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engine_ui.h">
+    <ClInclude Include="engine_tool_ui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

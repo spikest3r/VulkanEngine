@@ -1,5 +1,5 @@
 #include "engine.h"
-#include "engine_ui.h"
+#include "engine_tool_ui.h"
 
 void Engine::InitImGui(
     GLFWwindow* window,
@@ -52,48 +52,57 @@ void Engine::InitImGui(
     init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&init_info);
+
+    // gamepad nav support
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 }
 
 void Engine::SetUICallback(std::function<void(Engine* engine)> callback) { 
     uiCallback = callback; 
 }
 
-void UI::Begin(const char* name)
+void ToolUI::Begin(const char* name)
 {
     ImGui::Begin(name);
 }
 
-void UI::End()
+void ToolUI::End()
 {
     ImGui::End();
 }
 
-bool UI::Button(const char* text)
+bool ToolUI::Button(const char* text)
 {
     return ImGui::Button(text);
 }
 
-void UI::Text(const char* text)
+bool ToolUI::Button(const char* text, Vector2 size)
+{
+    return ImGui::Button(text, ImVec2(size.x,size.y));
+}
+
+void ToolUI::Text(const char* text)
 {
     ImGui::Text(text);
 }
 
-void UI::SameLine()
+void ToolUI::SameLine()
 {
     ImGui::SameLine();
 }
 
-void UI::ProgressBar(float value, Vector2 size)
+void ToolUI::ProgressBar(float value, Vector2 size)
 {
     ImGui::ProgressBar(value, ImVec2(size.x, size.y));
 }
 
-bool UI::TextField(const char* label, char* buffer, size_t size, bool disallowBlank)
+bool ToolUI::TextField(const char* label, char* buffer, size_t size, bool disallowBlank)
 {
     return ImGui::InputText(label, buffer, size, disallowBlank ? ImGuiInputTextFlags_CharsNoBlank : 0);
 }
 
-bool UI::InputFloat3(const char* label, Vector3& v, float speed)
+bool ToolUI::InputFloat3(const char* label, Vector3& v, float speed)
 {
     float arr[3] = { v.x, v.y, v.z };
 
@@ -109,26 +118,26 @@ bool UI::InputFloat3(const char* label, Vector3& v, float speed)
     return changed;
 }
 
-void UI::SetNextWindowPos(Vector2 pos) {
+void ToolUI::SetNextWindowPos(Vector2 pos) {
     //TODO: expose flags
     ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Always);
 }
 
-void UI::SetNextWindowSize(Vector2 size) {
+void ToolUI::SetNextWindowSize(Vector2 size) {
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Always);
 }
 
-void UI::AddFontFromFileTTF(UIFont& font, const char* fontName, float size) {
+void ToolUI::AddFontFromFileTTF(UIFont& font, const char* fontName, float size) {
     ImGuiIO& io = ImGui::GetIO();
     font.font = io.Fonts->AddFontFromFileTTF(fontName, size);
     io.Fonts->Build();
 }
 
-void UI::PushFont(UIFont& font) {
+void ToolUI::PushFont(UIFont& font) {
     ImGui::PushFont(font.font);
 }
 
-void UI::PopFont() {
+void ToolUI::PopFont() {
     ImGui::PopFont();
 }
 

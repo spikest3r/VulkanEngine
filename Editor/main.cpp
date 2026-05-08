@@ -1,5 +1,5 @@
 #include <engine.h>
-#include <engine_ui.h>
+#include <engine_tool_ui.h>
 #include <iostream>
 #include <cmath>
 #include <numbers>
@@ -134,7 +134,7 @@ private:
 	GameObject* CreateGameObject(Engine* engine, const char* objectType, const char* tag, const char* name, Transform transform, Mesh* mesh, Texture* texture, bool dynamic) override;
 	void ResourceLoaded(std::string name, const char* path, ResourceType type) override;
 
-	void EditorUI();
+	void EditorUI(Engine* engine);
 
 	int globalId = 0;
 
@@ -151,6 +151,7 @@ private:
 	bool sceneMgmtPane = false;
 	bool objectCreatePane = false;
 	bool cameraInfoPane = false;
+	bool lightPane = false;
 
 	char name[128];
 	char path[128];
@@ -181,6 +182,7 @@ private:
 
 	NearFarPlanes planes = { 0.1f, 100.0f };
 	Vector3 clearColor = { 0.2f,0.2f,0.2f };
+	Vector3 lightPos = { 0.5f,0.5f,1.0f };
 };
 
 void EditorScene::ResourceLoaded(std::string name, const char* path, ResourceType type) {
@@ -222,10 +224,10 @@ GameObject* EditorScene::CreateGameObject(Engine* engine, const char* objectType
 	strcpy_s(gameObject.gameObjectName, 512, name);
 	strcpy_s(gameObject.gameObjectType, 512, objectType);
 	strcpy_s(gameObject.gameObjectTag, 128, tag);
-	gameObject.meshName = mesh->getName();
-	gameObject.textureName = texture->getName();
-	gameObject.dynamic = false;
-	gameObject.transform = objectTransform;
+	gameObject.meshName = mesh ? mesh->getName() : "";
+	gameObject.textureName = texture ? texture->getName() : "";
+	gameObject.dynamic = dynamic;
+	gameObject.transform = transform; // Use the correct transform
 	gameObject.id = globalId++;
 
 	int sgoId = gameObject.id;
@@ -243,7 +245,7 @@ GameObject* EditorScene::CreateGameObject(Engine* engine, const char* objectType
 void EditorScene::InitScene(Engine* engine) {
 	importMeshButton = false;
 
-	engine->SetUICallback([this](Engine*) {EditorUI(); });
+	engine->SetUICallback([this](Engine* eng) {EditorUI(eng); });
 }
 
 Quaternion EulerDegreesToQuaternion(Vector3 e)
@@ -294,95 +296,104 @@ Vector3 QuaternionToEulerDegrees(Quaternion q)
 	return euler;
 }
 
-void EditorScene::EditorUI() {
+void EditorScene::EditorUI(Engine* engine) {
 	if (cameraInfoPane) { // keep even with hidden gui
-		UI::Begin("Camera");
-		if (UI::Button("Close")) cameraInfoPane = false;
+		ToolUI::Begin("Camera");
+		if (ToolUI::Button("Close")) cameraInfoPane = false;
 		char posBuffer[128];
 		sprintf_s(posBuffer, 128, "X: %f | Y: %f | Z: %f", cameraPos.x, cameraPos.y, cameraPos.z);
-		UI::Text(posBuffer);
+		ToolUI::Text(posBuffer);
 		char rotBuffer[128];
 		sprintf_s(rotBuffer, 128, "Pitch: %f | Yaw: %f", camera.pitch, camera.yaw);
-		UI::Text(rotBuffer);
+		ToolUI::Text(rotBuffer);
 
-		if (UI::Button("Reset transform")) {
+		if (ToolUI::Button("Reset transform")) {
 			camera.pitch = 0.0f;
 			camera.yaw = -90.0f;
 			resetCam = true;
 		}
 
-		UI::InputFloat3("Clear color", clearColor);
-		UI::Text("Clipping planes");
-		if (UI::TextField("Near plane", nearPlaneField, 32, true)) {
+		ToolUI::InputFloat3("Clear color", clearColor);
+		ToolUI::Text("Clipping planes");
+		if (ToolUI::TextField("Near plane", nearPlaneField, 32, true)) {
 			char* end;
 			float f = std::strtof(nearPlaneField, &end);
 			if (nearPlaneField == end) f = 0;
 			planes.near = f;
 		}
-		if(UI::TextField("Far plane", farPlaneField, 32, true)) {
+		if(ToolUI::TextField("Far plane", farPlaneField, 32, true)) {
 			char* end;
 			float f = std::strtof(farPlaneField, &end);
 			if (farPlaneField == end) f = 0;
 			planes.far = f;
 		}
-		if (UI::TextField("Move speed", moveSpeedField, 32, true)) {
+		if (ToolUI::TextField("Move speed", moveSpeedField, 32, true)) {
 			char* end;
 			float f = std::strtof(moveSpeedField, &end);
 			if (moveSpeedField == end) f = 0;
 			camera.moveSpeed = f;
 		}
-		UI::End();
+		ToolUI::End();
 	}
 
 	if (!gui) return;
 
-	UI::Begin("Toolbox");
-	if (UI::Button("Scene settings")) sceneMgmtPane = !sceneMgmtPane;
-	if (UI::Button("Resources")) resourcePane = !resourcePane;
-	if (UI::Button("Create object")) objectCreatePane = !objectCreatePane;
-	if (UI::Button("Object list")) objectListPane = !objectListPane;
-	if (UI::Button("Camera info")) cameraInfoPane = !cameraInfoPane;
-	UI::Text("Q - Toggle camera mode");
-	UI::End();
+	ToolUI::Begin("Toolbox");
+	if (ToolUI::Button("Scene settings")) sceneMgmtPane = !sceneMgmtPane;
+	if (ToolUI::Button("Resources")) resourcePane = !resourcePane;
+	if (ToolUI::Button("Create object")) objectCreatePane = !objectCreatePane;
+	if (ToolUI::Button("Object list")) objectListPane = !objectListPane;
+	if (ToolUI::Button("Camera info")) cameraInfoPane = !cameraInfoPane;
+	if (ToolUI::Button("Lighting")) lightPane = !lightPane;
+	ToolUI::Text("Q - Toggle camera mode");
+	ToolUI::End();
+
+	if (lightPane) {
+		ToolUI::Begin("Lighting");
+		if (ToolUI::InputFloat3("Position", lightPos)) {
+			engine->setLightPosition(lightPos);
+		}
+		ToolUI::End();
+	}
 
 	if (sceneMgmtPane) {
-		UI::Begin("Scene settings");
-		UI::Text("Import/export scene");
-		UI::TextField("Scene file path", sceneFileName, 128, true);
-		sceneExportButton = UI::Button("Export");
-		sceneImportButton = UI::Button("Import");
+		ToolUI::Begin("Scene settings");
+		ToolUI::Text("Import/export scene");
+		ToolUI::TextField("Scene file path", sceneFileName, 128, true);
+		sceneExportButton = ToolUI::Button("Export");
+		sceneImportButton = ToolUI::Button("Import");
 		if (sceneFileOpened) {
 			char buffer[512];
 			sprintf_s(buffer, 512, "Scene file: %s", g_sceneFile);
-			UI::Text(buffer);
-			if (UI::Button("Save")) {
+			ToolUI::Text(buffer);
+			if (ToolUI::Button("Save")) {
 				sceneExportButton = true;
 			}
 		}
-		UI::End();
+		ToolUI::End();
 	}
 
 	if (resourcePane) {
-		UI::Begin("Resources");
-		UI::TextField("Resource Name", name, 128, true);
-		UI::TextField("Resource Path", path, 128, true);
-		importMeshButton = UI::Button("Import mesh");
-		importTextureButton = UI::Button("Import texture");
-		UI::End();
+		ToolUI::Begin("Resources");
+		ToolUI::TextField("Resource Name", name, 128, true);
+		ToolUI::TextField("Resource Path", path, 128, true);
+		importMeshButton = ToolUI::Button("Import mesh");
+		importTextureButton = ToolUI::Button("Import texture");
+		ToolUI::End();
 	}
 
 	if (objectCreatePane) {
-		UI::Begin("Game object creation");
-		UI::TextField("Name", objectName, 128, true);
-		UI::TextField("Type", objectType, 128, true);
-		UI::InputFloat3("Position", objectTransform.position);
-		UI::InputFloat3("Rotation", objectRotation);
-		UI::InputFloat3("Scale", objectTransform.scale);
-		UI::TextField("Mesh", objectMesh, 128, true);
-		UI::TextField("Texture", objectTexture, 128, true);
-		createGameObjectButton = UI::Button("Instantiate");
-		UI::SameLine();
-		if (UI::Button("Clear fields")) {
+		ToolUI::Begin("Game object creation");
+		ToolUI::TextField("Name", objectName, 128, true);
+		ToolUI::TextField("Type", objectType, 128, true);
+		ToolUI::InputFloat3("Position", objectTransform.position);
+		ToolUI::InputFloat3("Rotation", objectRotation);
+		ToolUI::InputFloat3("Scale", objectTransform.scale);
+		ToolUI::TextField("Mesh", objectMesh, 128, true);
+		ToolUI::TextField("Texture", objectTexture, 128, true);
+		createGameObjectButton = ToolUI::Button("Instantiate");
+		ToolUI::SameLine();
+		if (ToolUI::Button("Clear fields")) {
 			memset(objectName, 0, 128);
 			memset(objectType, 0, 128);
 			memset(objectMesh, 0, 128);
@@ -391,11 +402,11 @@ void EditorScene::EditorUI() {
 			objectTransform = { {0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f,1.0f}, {0.0f,0.0f,0.0f} };
 			objectRotation = { 0.0f,0.0f,0.0f };
 		}
-		UI::End();
+		ToolUI::End();
 	}
 
 	if (objectListPane) {
-		UI::Begin("All game objects");
+		ToolUI::Begin("All game objects");
 		int i = 1;
 		for (auto& object : objectList) {
 			auto it = gameObjectsMap.find(object.sgoId);
@@ -403,7 +414,7 @@ void EditorScene::EditorUI() {
 
 			char buffer[256];
 			sprintf_s(buffer, 256, "%i. %s", i, displayName);
-			if (UI::Button(buffer)) {
+			if (ToolUI::Button(buffer)) {
 				seletcedGameObject = &object;
 				selectedSGO = &gameObjectsMap[object.sgoId];
 				gameObjectSelected = true;
@@ -411,7 +422,7 @@ void EditorScene::EditorUI() {
 			}
 			i++;
 		}
-		UI::End();
+		ToolUI::End();
 	}
 
 	if (gameObjectSelected && seletcedGameObject) {
@@ -420,41 +431,41 @@ void EditorScene::EditorUI() {
 
 		char buffer[256];
 		sprintf_s(buffer, 256, "%s Properties", objName);
-		UI::Begin("Game Object Properties");
-		UI::Text(buffer);
+		ToolUI::Begin("Game Object Properties");
+		ToolUI::Text(buffer);
 		bool close = false;
-		if (UI::Button("Close")) {
+		if (ToolUI::Button("Close")) {
 			close = true;
 		}
 
-		UI::SameLine();
+		ToolUI::SameLine();
 
-		if (UI::Button("Remove")) {
+		if (ToolUI::Button("Remove")) {
 			gameObjectSelected = false;
 			destroyGameObjectButton = true;
 			//seletcedGameObject = nullptr;
 		}
 
-		if(UI::TextField("Name", selectedSGO->gameObjectName, 512, true))
+		if(ToolUI::TextField("Name", selectedSGO->gameObjectName, 512, true))
 			seletcedGameObject->go->name = selectedSGO->gameObjectName;
-		UI::TextField("Tag", selectedSGO->gameObjectTag, 128, true);
-		UI::TextField("Type", selectedSGO->gameObjectType, 512, true);
+		ToolUI::TextField("Tag", selectedSGO->gameObjectTag, 128, true);
+		ToolUI::TextField("Type", selectedSGO->gameObjectType, 512, true);
 
-		UI::TextField("Texture", objectTexture2, 128, true);
-		UI::SameLine();
-		if (UI::Button("Update texture")) {
+		ToolUI::TextField("Texture", objectTexture2, 128, true);
+		ToolUI::SameLine();
+		if (ToolUI::Button("Update texture")) {
 			texUpd = true;
 		}
 
-		UI::Text("Transform");
+		ToolUI::Text("Transform");
 
 		Transform trans = seletcedGameObject->go->transform;
 		Vector3 rot = QuaternionToEulerDegrees(trans.rotation);
 
 		bool changed = false;
-		changed |= UI::InputFloat3("Position", trans.position);
-		changed |= UI::InputFloat3("Rotation", rot);
-		changed |= UI::InputFloat3("Scale", trans.scale);
+		changed |= ToolUI::InputFloat3("Position", trans.position);
+		changed |= ToolUI::InputFloat3("Rotation", rot);
+		changed |= ToolUI::InputFloat3("Scale", trans.scale);
 
 		if (changed)
 		{
@@ -463,7 +474,7 @@ void EditorScene::EditorUI() {
 			gameObjectsMap[seletcedGameObject->sgoId].transform = trans;
 		}
 
-		UI::End();
+		ToolUI::End();
 
 		if (close) {
 			gameObjectSelected = false;
