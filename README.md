@@ -4,7 +4,13 @@
 ![PhysX](https://img.shields.io/badge/Physics-NVIDIA%20PhysX-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
 ![FMOD](https://img.shields.io/badge/Audio-FMOD-00AEEF?style=for-the-badge&logo=fmod&logoColor=white)
 
-**VulkanEngine** is a high-performance C++ engine core built around a **static factory architecture**, custom memory allocator, GPU-driven rendering pipeline (Vulkan 1.3), PhysX physics layer, and FMOD spatial audio system.
+## This branch is not stable. I'm trying to make engine more crossplatform and alongside adding CMake. Don't expect this to work for now. Use ```prod``` branch for stable release, which currently is VS2026 Solution for Windows only! This branch should work on Linux only for now. I'll merge everything soon.
+
+I tested this on arch linux. If you want to try this on arch, install FMOD from official website and build PhysX from AUR. I'm working on more universal build instructions so this should be more easy in future.
+
+## Description
+
+**VulkanEngine** is a high-performance **crossplatform** C++ engine core built around a **static factory architecture**, GPU-driven rendering pipeline (Vulkan 1.3), PhysX physics layer, and FMOD spatial audio system.
 
 Work in progress.
 
