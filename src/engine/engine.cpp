@@ -52,10 +52,6 @@ void Engine::initVulkan() {
 	createTextureSampler();  
 	createDescriptorPool();
 	createDescriptorSetLayouts();
-
-	assert(frameSetLayout != VK_NULL_HANDLE && "frameSetLayout is null!");
-	assert(textureSetLayout != VK_NULL_HANDLE && "textureSetLayout is null!");
-
 	createUniformBuffers();  
 	createFrameDescriptorSets(); 
 

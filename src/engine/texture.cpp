@@ -12,8 +12,6 @@ Texture* Engine::createTexture(std::string name, const char* path) {
 
     texture->createDescriptorSet(device, descriptorPool, textureSetLayout, textureSampler);
 
-	assert(texture->descriptorSet != VK_NULL_HANDLE && "texture descriptorSet is null!");
-
     textures.push_back(texture);
     resources[name] = texture;
     return texture;

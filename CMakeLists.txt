@@ -30,7 +30,7 @@ set(PHYSX_LIBS
 )
 
 # 4. Collect Sources
-file(GLOB SOURCES 
+file(GLOB_RECURSE SOURCES 
 	src/*.cpp
 )
 
@@ -43,6 +43,7 @@ target_include_directories(VulkanEngine PRIVATE
     ${Vulkan_INCLUDE_DIRS}
     ${FMOD_INC_DIR}           # Added FMOD headers
     /usr/include/physx
+    PRIVATE src/include/ 
 )
 
 # 7. Linkage
