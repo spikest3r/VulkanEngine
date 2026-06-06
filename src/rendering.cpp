@@ -41,13 +41,13 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 
 			uint32_t dynamicOffset = static_cast<uint32_t>(i * dynamicAlignment);
 
-			vkCmdBindDescriptorSets(
-				commandBuffer,
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayout,
-				0, 1, &obj->descriptorSet,
-				1, &dynamicOffset
-			);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout, 0, 1, &frameDescriptorSets[currentFrame],
+				1, &dynamicOffset);
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout, 1, 1, &obj->texture->descriptorSet,
+				0, nullptr);
 
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT,
 				0, sizeof(LightPushConstants), &lightSettings);
@@ -68,13 +68,15 @@ void Engine::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 
 		uint32_t dynamicOffset = static_cast<uint32_t>(i * dynamicAlignment);
 
-		vkCmdBindDescriptorSets(
-			commandBuffer,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelineLayout,
-			0, 1, &element->descSet,
-			1, &dynamicOffset
-		);
+		// set=0: frame UBO with dynamic offset
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout, 0, 1, &frameDescriptorSets[currentFrame],
+			1, &dynamicOffset);
+
+		// set=1: texture (lives on the texture now, not the element)
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout, 1, 1, &element->texture->descriptorSet,
+			0, nullptr);
 
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			0, sizeof(LightPushConstants), &lightSettings);

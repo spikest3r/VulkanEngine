@@ -40,37 +40,32 @@ void Engine::internal_createGameObject(
     PhysicsMaterial* material,
     bool isDynamic
 ) {
-    // Initialize (Overwrite old data)
     ptr->transform = spawnTransform;
-    if(mesh) {
+    if (mesh) {
         ptr->objBuffer.vertexBuffer = mesh->verticesVk;
-        ptr->objBuffer.indexBuffer = mesh->indicesVk;
-        ptr->indexCount = static_cast<uint32_t>(mesh->indices.size());
-        ptr->isDynamic = isDynamic;
+        ptr->objBuffer.indexBuffer  = mesh->indicesVk;
+        ptr->indexCount             = static_cast<uint32_t>(mesh->indices.size());
+        ptr->isDynamic              = isDynamic;
     } else {
         ptr->isDynamic = false;
     }
-    ptr->engPtr = this;
-    ptr->name = "Game object";
-    ptr->tag = "Default tag";
-    ptr->id = gameObjectID++;
+    ptr->engPtr  = this;
+    ptr->name    = "Game object";
+    ptr->tag     = "Default tag";
+    ptr->id      = gameObjectID++;
+    ptr->texture = texture;  // just store the pointer, descriptor set lives on texture now
 
-    // Vulkan & FMOD
-    if(mesh) createVkDescriptorSet(ptr->descriptorSet, texture->imageView);
+    // REMOVED: createVkDescriptorSet call, texture already has its descriptor set
 
-    // Reuse or create ChannelGroup
-    std::string groupName = "ObjGroup_" + std::to_string(gameObjectID); // Use index as ID
+    std::string groupName = "ObjGroup_" + std::to_string(gameObjectID);
     system->createChannelGroup(groupName.c_str(), &ptr->channelGroup);
     ptr->channelGroup->setMode(FMOD_2D);
 
-    // Physics
     if (mesh) {
-        if (isDynamic) {
+        if (isDynamic)
             ptr->physicsActor = createDynamicActor(mesh, spawnTransform.scale, material->material);
-        }
-        else {
+        else
             ptr->physicsActor = createStaticActor(mesh, spawnTransform.scale, material->material);
-        }
     }
 
     if (ptr->physicsActor) {
@@ -81,20 +76,18 @@ void Engine::internal_createGameObject(
         if (isDynamic) {
             physx::PxRigidDynamic* dyn = static_cast<physx::PxRigidDynamic*>(ptr->physicsActor);
             dyn->setMass(10.0f);
-
             float inertiaVal = (1.0f / 6.0f) * 10.0f * (1.0f * 1.0f);
             dyn->setMassSpaceInertiaTensor(PxVec3(inertiaVal, inertiaVal, inertiaVal));
-
             dyn->setAngularDamping(1.0f);
             dyn->setLinearDamping(0.5f);
             dyn->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
             dyn->wakeUp();
         }
 
-        ptr->updateTransform(); // apply all transformations
+        ptr->updateTransform();
     }
 
-    if(!mesh) ptr->skip = true;
+    if (!mesh) ptr->skip = true;
 
     gameObjects.push_back(ptr);
 
@@ -103,7 +96,7 @@ void Engine::internal_createGameObject(
 }
 
 void GameObject::updateTexture(Texture* newTexture) {
-    engPtr->updateGameObjectDescriptorSet(this->descriptorSet, newTexture->imageView);
+    texture = newTexture;
 }
 
 void GameObject::playSound(Sound* sound, float volume)
@@ -215,13 +208,10 @@ inline ObjectHeader* getHeader(void* obj) {
     return (ObjectHeader*)((char*)obj - sizeof(ObjectHeader));
 }
 
-void Engine::cleanupGameObject(GameObject* object)
-{
+void Engine::cleanupGameObject(GameObject* object) {
     if (!object) return;
 
-    // 1. stop FMOD FIRST
-    if (object->channelGroup)
-    {
+    if (object->channelGroup) {
         object->channelGroup->stop();
         object->channelGroup->release();
         object->channelGroup = nullptr;
@@ -229,31 +219,22 @@ void Engine::cleanupGameObject(GameObject* object)
 
     object->stopAllSounds();
 
-    // 2. physics
-    if (object->physicsActor)
-    {
+    if (object->physicsActor) {
         gScene->removeActor(*object->physicsActor);
         object->physicsActor->release();
     }
 
-    // 3. remove from vector
-    for (size_t i = 0; i < gameObjects.size(); i++)
-    {
-        if (gameObjects[i] == object)
-        {
+    for (size_t i = 0; i < gameObjects.size(); i++) {
+        if (gameObjects[i] == object) {
             gameObjects[i] = gameObjects.back();
             gameObjects.pop_back();
             break;
         }
     }
 
-    // 4. Vulkan cleanup
-    vkFreeDescriptorSets(device, descriptorPool, 1, &object->descriptorSet);
-
     for (int f = 0; f < MAX_FRAMES_IN_FLIGHT; f++)
         updateUniformBuffer(f);
 
-    // 5. memory free LAST
     ObjectHeader* h = getHeader(object);
     h->destroy(object);
 }

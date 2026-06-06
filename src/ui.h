@@ -13,6 +13,5 @@ public:
 private:
 	Texture* texture;
 	ObjectBuffer buffer;
-	VkDescriptorSet descSet;
 	UniformBufferObject ubo;
 };

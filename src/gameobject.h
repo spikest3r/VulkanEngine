@@ -55,7 +55,6 @@ private:
 	glm::mat4 GetModel();
 
 	// Engine Internal objects
-	VkDescriptorSet descriptorSet;
 	UniformBufferObject uboData;
 	ObjectBuffer objBuffer;
 
@@ -66,6 +65,7 @@ private:
 	FMOD::ChannelGroup* channelGroup;
 
 	Engine* engPtr;
+	Texture* texture;
 
 	int indexCount;
 

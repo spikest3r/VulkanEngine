@@ -49,10 +49,15 @@ void Engine::initVulkan() {
 	createImageViews();
 	createRenderPass();
 
-	createDescriptorSetLayout();
 	createTextureSampler();  
+	createDescriptorPool();
+	createDescriptorSetLayouts();
+
+	assert(frameSetLayout != VK_NULL_HANDLE && "frameSetLayout is null!");
+	assert(textureSetLayout != VK_NULL_HANDLE && "textureSetLayout is null!");
+
 	createUniformBuffers();  
-	createDescriptorPool();  
+	createFrameDescriptorSets(); 
 
 	createGraphicsPipeline();
 
@@ -216,7 +221,8 @@ void Engine::cleanup() {
 		texture->destroy(this);
 	}
 
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, frameSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, textureSetLayout, nullptr);
 
 	vkDestroyCommandPool(device, commandPool, nullptr);
 

@@ -17,4 +17,6 @@ private:
 	VkDeviceMemory deviceMemory;
 	void destroy(void*) override;
 	ResourceType getType() override;
+	VkDescriptorSet descriptorSet;  // moved here from GameObject
+	void createDescriptorSet(VkDevice, VkDescriptorPool, VkDescriptorSetLayout, VkSampler);
 };

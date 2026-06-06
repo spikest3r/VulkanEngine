@@ -276,9 +276,9 @@ public:
 	// engine internal
 	void playSound(Sound* sound, FMOD::ChannelGroup* group, FMOD::Channel** channel, bool startPaused);
 	VkDevice* getVkDevicePtr();
-	void updateGameObjectDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView);
 	PhysicsMaterial* getDefaultMaterial() { return eDefaultMaterial; }
 	void forceDestroy();
+	VkDescriptorPool getDescriptorPool() { return descriptorPool; }
 private:
 	Engine() {};
 
@@ -362,7 +362,9 @@ private:
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
 	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout frameSetLayout;    // was: single descriptorSetLayout
+	VkDescriptorSetLayout textureSetLayout;  // new, for textures
+	std::vector<VkDescriptorSet> frameDescriptorSets; // one per frame, replaces per-object sets
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
@@ -402,7 +404,6 @@ private:
 	void populateObjectBuffer(ObjectBuffer& buffer, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
 	std::vector<GameObject*> gameObjects;
 	int objectsAllocated = 0;
-	void createVkDescriptorSet(VkDescriptorSet& obj, VkImageView textureImageView);
 	void cleanupGameObject(GameObject* object);
 
 	// Resource Management
@@ -430,9 +431,9 @@ private:
 	void createDepthResources();
 
 	// Descriptor Sets
-	void createDescriptorSets(VkImageView& textureImageView, std::vector<VkDescriptorSet>& descriptorSets);
 	void createDescriptorPool();
-	void createDescriptorSetLayout();
+	void createDescriptorSetLayouts();
+	void createFrameDescriptorSets();
 
 	void createUniformBuffers();
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);

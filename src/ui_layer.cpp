@@ -32,19 +32,14 @@ void Engine::initUILayer() {
 
 UIElement* Engine::createUIElement(Texture* texture, Vector2 pos, Vector2 size) {
     UIElement* element = new UIElement();
-    
-    element->texture = texture;
+    element->texture  = texture;
     element->position = pos;
-    element->size = size;
-    
-    element->buffer.vertexBuffer = uiQuad->verticesVk;
-    element->buffer.indexBuffer = uiQuad->indicesVk;
-
+    element->size     = size;
+    element->buffer.vertexBuffer       = uiQuad->verticesVk;
+    element->buffer.indexBuffer        = uiQuad->indicesVk;
     element->buffer.vertexBufferMemory = uiQuad->verticesVkMem;
-    element->buffer.indexBufferMemory = uiQuad->indicesVkMem;
+    element->buffer.indexBufferMemory  = uiQuad->indicesVkMem;
 
-    createVkDescriptorSet(element->descSet, texture->imageView);
-    
     uiElements.push_back(element);
 
     for (int f = 0; f < MAX_FRAMES_IN_FLIGHT; f++)
