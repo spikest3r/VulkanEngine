@@ -136,4 +136,8 @@ void Engine::dualsense_setLightbarColor(unsigned char R, unsigned char G, unsign
 bool Engine::isDualSenseAttached() {
     return dsPresent;
 }
+#else
+void Engine::dualsense_setLightbarColor(unsigned char R, unsigned char G, unsigned char B) {
+
+}
 #endif

@@ -29,8 +29,9 @@ void Engine::init(const int width, const int height, const char* title) {
 	initUILayer();
 
 	// init haptics
-	#ifdef _WIN32
 	initHaptics();
+
+	#ifdef _WIN32
 	initDSRGB();
 	#endif
 
@@ -138,19 +139,28 @@ void Engine::cleanup() {
 		cleanupGameObject(obj);
 	}
 
+	if (mAudioThread.joinable()) {
+		mAudioThread.join(); // Wait for the thread to actually finish
+	}
+
+	if (hapticGroup) {
+        hapticGroup->stop();
+        hapticGroup->release();
+        hapticGroup = nullptr;
+    }
+
 	#ifdef _WIN32
 	// Cleanup WASAPI
 	if (hAudioEvent) {
 		SetEvent(hAudioEvent);
 	}
 
-	if (mAudioThread.joinable()) {
-		mAudioThread.join(); // Wait for the thread to actually finish
-	}
-
 	if (dsPresent) {
 		CloseHandle(dsHID);
 	}
+	#elif __linux__
+	alsaHandle = nullptr;
+    alsaDevice = nullptr;
 	#endif
 
 	// FMOD Cleanup

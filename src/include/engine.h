@@ -86,6 +86,10 @@
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 
+#elif __linux__
+
+#include <alsa/asoundlib.h>
+
 #endif
 
 using namespace physx;
@@ -563,19 +567,24 @@ private:
 
 	// === DUALSENSE ===
 
-	#ifdef _WIN32
-
 	// FMOD DualSense haptics
 	FMOD::ChannelGroup* hapticGroup = nullptr;
 	static FMOD_RESULT PCMGrabDSP(FMOD_DSP_STATE* state, float* inbuffer, float* outbuffer,
 		unsigned int length, int inchannels, int* outchannels);
 	void initHaptics();
 
-	// WASAPI
 	static std::vector<float> pcmBuffer;
 	static std::atomic<size_t> writePos;
 	static std::atomic<size_t> readPos;
 
+	void AudioRenderThread(); // dsp sync
+	std::thread mAudioThread;
+
+	bool dsPresent = false;
+
+	#ifdef _WIN32
+
+	// WASAPI
 	IMMDeviceEnumerator* enumerator = nullptr;
 	IMMDeviceCollection* collection = nullptr;
 	IMMDevice* immDevice = nullptr;
@@ -584,13 +593,14 @@ private:
 	HANDLE hAudioEvent = nullptr;
 	UINT32 bufferFrameCount = 0;
 
-	void AudioRenderThread(); // dsp sync
-	std::thread mAudioThread;
-
 	// Dualsense RGB
 	void initDSRGB();
 	HANDLE dsHID;
-	bool dsPresent = false;
+
+	#elif __linux__
+
+    snd_pcm_t* alsaHandle = nullptr;
+    char*      alsaDevice  = nullptr;
 
 	#endif
 

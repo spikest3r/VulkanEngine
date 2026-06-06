@@ -56,6 +56,10 @@ target_link_libraries(VulkanEngine PRIVATE
     Threads::Threads
 )
 
+if(UNIX AND NOT APPLE)
+    target_link_libraries(VulkanEngine PRIVATE asound)
+endif()
+
 # Set output name to libVulkanEngine.so
 set_target_properties(VulkanEngine PROPERTIES PREFIX "")
 
