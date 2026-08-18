@@ -352,11 +352,6 @@ void Engine::requestDestroyScene(Scene* scene) {
     sceneDestroyQueue.push(scene);
 }
 
-inline ObjectHeader* getHeader(void* obj) {
-    return (ObjectHeader*)((char*)obj - sizeof(ObjectHeader));
-}
-
-
 void Engine::checkSceneDestroy() {
     while (!sceneDestroyQueue.empty()) {
         auto& scene = sceneDestroyQueue.front();

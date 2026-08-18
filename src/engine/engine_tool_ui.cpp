@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "engine_tool_ui.h"
+#include "imgui_internal.h"
 
 void Engine::InitImGui(
     GLFWwindow* window,
@@ -37,7 +38,7 @@ void Engine::InitImGui(
     vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool);
 
     ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.ApiVersion = VK_API_VERSION_1_3; // Or your specific version
+    init_info.ApiVersion = VK_API_VERSION_1_3;
     init_info.Instance = instance;
     init_info.PhysicalDevice = physicalDevice;
     init_info.Device = device;
@@ -45,26 +46,34 @@ void Engine::InitImGui(
     init_info.DescriptorPool = imguiPool;
     init_info.MinImageCount = imageCount;
     init_info.ImageCount = imageCount;
-    
-    // NEW: Set the pipeline info in the nested struct
+
     init_info.PipelineInfoMain.RenderPass = renderPass;
     init_info.PipelineInfoMain.Subpass = 0;
     init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&init_info);
 
-    // gamepad nav support
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 }
 
-void Engine::SetUICallback(std::function<void(Engine* engine)> callback) { 
-    uiCallback = callback; 
+void Engine::SetUICallback(std::function<void(Engine* engine)> callback)
+{
+    uiCallback = callback;
 }
 
-void ToolUI::Begin(const char* name)
+void ToolUI::Begin(const char* name, bool borderless, bool resizable)
 {
-    ImGui::Begin(name);
+    auto flags = borderless ?
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse |
+        ImGuiWindowFlags_NoCollapse
+        : 0;
+
+    flags = !resizable ? flags | ImGuiWindowFlags_NoResize : flags;
+
+    ImGui::Begin(name, nullptr, flags);
 }
 
 void ToolUI::End()
@@ -79,7 +88,7 @@ bool ToolUI::Button(const char* text)
 
 bool ToolUI::Button(const char* text, Vector2 size)
 {
-    return ImGui::Button(text, ImVec2(size.x,size.y));
+    return ImGui::Button(text, ImVec2(size.x, size.y));
 }
 
 void ToolUI::Text(const char* text)
@@ -99,7 +108,39 @@ void ToolUI::ProgressBar(float value, Vector2 size)
 
 bool ToolUI::TextField(const char* label, char* buffer, size_t size, bool disallowBlank)
 {
-    return ImGui::InputText(label, buffer, size, disallowBlank ? ImGuiInputTextFlags_CharsNoBlank : 0);
+    return ImGui::InputText(
+        label,
+        buffer,
+        size,
+        disallowBlank ? ImGuiInputTextFlags_CharsNoBlank : 0
+    );
+}
+
+bool ToolUI::TextField(const char* label, std::string& str, bool disallowBlank)
+{
+    auto resizeCallback = [](ImGuiInputTextCallbackData* data) -> int
+    {
+        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+        {
+            std::string* s = static_cast<std::string*>(data->UserData);
+            s->resize(data->BufTextLen);
+            data->Buf = s->data();
+        }
+        return 0;
+    };
+
+    ImGuiInputTextFlags flags = ImGuiInputTextFlags_CallbackResize;
+    if (disallowBlank)
+        flags |= ImGuiInputTextFlags_CharsNoBlank;
+
+    return ImGui::InputText(
+        label,
+        str.data(),
+        str.capacity() + 1,
+        flags,
+        resizeCallback,
+        &str
+    );
 }
 
 bool ToolUI::InputFloat3(const char* label, Vector3& v, float speed)
@@ -118,57 +159,129 @@ bool ToolUI::InputFloat3(const char* label, Vector3& v, float speed)
     return changed;
 }
 
-void ToolUI::SetNextWindowPos(Vector2 pos) {
-    //TODO: expose flags
+bool ToolUI::Checkbox(const char* label, bool* value) {
+    return ImGui::Checkbox(label, value);
+}
+
+bool ToolUI::RadioButtonInt(const char* label, int* value, int option) {
+    bool active = (*value == option);
+    if (ImGui::RadioButton(label, active)) {
+        *value = option;
+        return true;
+    }
+    return false;
+}
+
+void ToolUI::Separator(SeparatorType type) {
+    switch(type) {
+    case VERTICAL:
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        break;
+    case HORIZONTAL:
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
+        break;
+    default:
+        ImGui::Separator();
+        break;
+    }
+}
+
+void ToolUI::SetNextWindowPos(Vector2 pos)
+{
     ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Always);
 }
 
-void ToolUI::SetNextWindowSize(Vector2 size) {
+void ToolUI::SetNextWindowSize(Vector2 size)
+{
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Always);
 }
 
-void ToolUI::AddFontFromFileTTF(UIFont& font, const char* fontName, float size) {
+void ToolUI::AddFontFromFileTTF(UIFont& font, const char* fontName, float size)
+{
     ImGuiIO& io = ImGui::GetIO();
     font.font = io.Fonts->AddFontFromFileTTF(fontName, size);
     io.Fonts->Build();
 }
 
-void ToolUI::PushFont(UIFont& font) {
+void ToolUI::PushFont(UIFont& font)
+{
     ImGui::PushFont(font.font);
 }
 
-void ToolUI::PopFont() {
+void ToolUI::PopFont()
+{
     ImGui::PopFont();
+}
+
+bool ToolUI::InputTextMultiline(const char* label, std::string& str)
+{
+    auto resizeCallback = [](ImGuiInputTextCallbackData* data) -> int
+    {
+        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+        {
+            std::string* s = static_cast<std::string*>(data->UserData);
+            s->resize(data->BufTextLen);
+            data->Buf = s->data();
+        }
+        return 0;
+    };
+
+    return ImGui::InputTextMultiline(
+        label,
+        str.data(),
+        str.capacity() + 1,
+        ImGui::GetContentRegionAvail(),
+        ImGuiInputTextFlags_CallbackResize,
+        resizeCallback,
+        &str
+    );
 }
 
 // === DEBUG ===
 
-ImVec2 WorldToScreen(const physx::PxVec3& worldPos, const glm::mat4& viewProj, float width, float height) {
+ImVec2 WorldToScreen(
+    const physx::PxVec3& worldPos,
+    const glm::mat4& viewProj,
+    float width,
+    float height)
+{
     glm::vec4 clipSpace = viewProj * glm::vec4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
-    if (clipSpace.w <= 0.0f) return ImVec2(-1, -1);
+
+    if (clipSpace.w <= 0.0f)
+        return ImVec2(-1, -1);
 
     glm::vec3 ndc = glm::vec3(clipSpace) / clipSpace.w;
+
     return ImVec2(
         (ndc.x + 1.0f) * 0.5f * width,
         (1.0f - ndc.y) * 0.5f * height
     );
 }
 
-physx::PxVec3 Vec3ToPx(Vector3& v) {
+physx::PxVec3 Vec3ToPx(Vector3& v)
+{
     return physx::PxVec3(v.x, v.y, v.z);
 }
 
-void Engine::renderPhysXDebug(const glm::mat4& viewProjMatrix, float screenWidth, float screenHeight) {
+void Engine::renderPhysXDebug(
+    const glm::mat4& viewProjMatrix,
+    float screenWidth,
+    float screenHeight)
+{
+    std::cout << "RENDER" << std::endl;
+
     const PxRenderBuffer& rb = gScene->getRenderBuffer();
     ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
-    for (PxU32 i = 0; i < rb.getNbLines(); i++) {
+    for (PxU32 i = 0; i < rb.getNbLines(); i++)
+    {
         const PxDebugLine& line = rb.getLines()[i];
 
         ImVec2 p0 = WorldToScreen(line.pos0, viewProjMatrix, screenWidth, screenHeight);
         ImVec2 p1 = WorldToScreen(line.pos1, viewProjMatrix, screenWidth, screenHeight);
 
-        if (p0.x != -1 && p1.x != -1) {
+        if (p0.x != -1 && p1.x != -1)
+        {
             drawList->AddLine(p0, p1, IM_COL32(0, 255, 0, 255), 1.0f);
         }
     }
@@ -178,9 +291,11 @@ void Engine::renderPhysXDebug(const glm::mat4& viewProjMatrix, float screenWidth
         ImVec2 p0 = WorldToScreen(Vec3ToPx(r.origin), viewProjMatrix, screenWidth, screenHeight);
         ImVec2 p1 = WorldToScreen(Vec3ToPx(r.hitOrEnd), viewProjMatrix, screenWidth, screenHeight);
 
-        if (p0.x == -1 || p1.x == -1) continue;
+        if (p0.x == -1 || p1.x == -1)
+            continue;
 
-        ImU32 color = r.hit ? IM_COL32(0, 0, 255, 255)
+        ImU32 color = r.hit
+            ? IM_COL32(0, 0, 255, 255)
             : IM_COL32(255, 0, 0, 255);
 
         drawList->AddLine(p0, p1, color, 2.0f);

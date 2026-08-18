@@ -96,186 +96,292 @@ using namespace physx;
 
 class ControllerHitCallback;
 
+inline ObjectHeader* getHeader(void* object)
+{
+    return *reinterpret_cast<ObjectHeader**>(
+        static_cast<char*>(object) - sizeof(ObjectHeader*)
+    );
+}
+
 class Engine {
 public:
-	ENGINE_API void init(const int width, const int height, const char* title);
+    ENGINE_API void init(const int width, const int height, const char* title);
+    ENGINE_API void update();
+    ENGINE_API void render();
+    ENGINE_API bool running();
+    ENGINE_API float getDeltaTime();
+    ENGINE_API void cleanup();
+    ENGINE_API void exit();
 
-	ENGINE_API void update();
-	ENGINE_API void render();
-	ENGINE_API bool running();
-	ENGINE_API float getDeltaTime();
-	ENGINE_API void cleanup();
-	ENGINE_API void exit();
+    ENGINE_API void getCameraVectors(Vector3& forward, Vector3& right);
+    ENGINE_API Vector2 getExtents();
 
-	ENGINE_API void getCameraVectors(Vector3& forward, Vector3& right);
-	ENGINE_API Vector2 getExtents();
+    static ENGINE_API Engine* Create();
+    static ENGINE_API void Destroy(Engine* instance);
 
-	static ENGINE_API Engine* Create(); // Static factory
-	static ENGINE_API void Destroy(Engine* instance);
+    // Game Object
+    ENGINE_API Texture* createTexture(std::string name, const char* path);
+    ENGINE_API Mesh* createMesh(std::string name, const char* path);
+    ENGINE_API Mesh* createMesh(std::string name, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+    ENGINE_API Sound* createSound(std::string name, const char* path, bool looping, bool three_dim);
 
-	// Game Object
+    ENGINE_API Texture* getTexture(std::string name);
+    ENGINE_API Mesh* getMesh(std::string name);
+    ENGINE_API Sound* getSound(std::string name);
+    ENGINE_API Scene* getScene(std::string sceneFile);
+    ENGINE_API GameObject* getGameObject(std::string name);
 
-	ENGINE_API Texture* createTexture(std::string name, const char* path);
-	ENGINE_API Mesh* createMesh(std::string name, const char* path);
-	ENGINE_API Mesh* createMesh(std::string name, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-	ENGINE_API Sound* createSound(std::string name, const char* path, bool looping, bool three_dim);
+    ENGINE_API KeyState getKey(KeyCode code);
+    ENGINE_API KeyState getMouseButton(MouseButton button);
 
-	ENGINE_API Texture* getTexture(std::string name);
-	ENGINE_API Mesh* getMesh(std::string name);
-	ENGINE_API Sound* getSound(std::string name);
-	ENGINE_API Scene* getScene(std::string sceneFile);
-	ENGINE_API GameObject* getGameObject(std::string name);
+    ENGINE_API Vector2 getMousePos();
+    ENGINE_API void getMouseRay(Vector3& origin, Vector3& direction);
+    ENGINE_API float getScrollDelta();
 
-	ENGINE_API KeyState getKey(KeyCode code);
-	ENGINE_API KeyState getMouseButton(MouseButton button);
+    Vector3 cameraPosition = { 0.0f, 0.0f, 5.0f };
+    Vector3 cameraRotation = { 0.0f, -90.0f, 0.0f };
+    Vector3 cameraOffset = { 0.0f, 0.0f, 0.0f };
+    NearFarPlanes planes = { 0.1f, 100.f };
 
-	ENGINE_API Vector2 getMousePos();
+    ENGINE_API void renderPhysXDebug(bool state);
+    ENGINE_API void pushRayDebug(RayDebug rd);
 
-	Vector3 cameraPosition = { 0.0f, 0.0f, 5.0f }; // Start 5 units back
-	Vector3 cameraRotation = { 0.0f, -90.0f, 0.0f }; // Point toward the scene
-	Vector3 cameraOffset = {0.0f,0.0f,0.0f};
-	NearFarPlanes planes = { 0.1f, 100.f };
-	
-	ENGINE_API void renderPhysXDebug(bool state);
-	ENGINE_API void pushRayDebug(RayDebug rd);
+    ENGINE_API ICharacterController* createCharacterController(
+        float height,
+        float radius,
+        Vector3 position,
+        PhysicsMaterial* material,
+        bool interactWithActors
+    );
 
-	ENGINE_API ICharacterController* createCharacterController(float height, float radius, Vector3 position, PhysicsMaterial* material, bool interactWithActors);
-	ENGINE_API PhysicsMaterial* createPhysicsMaterial(float staticFriction, float dynamicFriction, float restitution);
+    ENGINE_API PhysicsMaterial* createPhysicsMaterial(
+        float staticFriction,
+        float dynamicFriction,
+        float restitution
+    );
 
-	ENGINE_API Trigger* createBoxTrigger(Vector3 pos, Vector3 size);
+    ENGINE_API Trigger* createBoxTrigger(Vector3 pos, Vector3 size);
+    ENGINE_API void setGlobalMute(bool mute);
 
-	ENGINE_API void setGlobalMute(bool mute);
+    ENGINE_API void requestDestroy(IResource* resource);
+    ENGINE_API void requestDestroyGameObject(GameObject* object);
+    ENGINE_API void requestDestroyTrigger(Trigger* trigger);
+    ENGINE_API void requestDestroyCharacterController(ICharacterController* ctrl);
+    ENGINE_API void requestDestroyScene(Scene* scene);
 
-	ENGINE_API void requestDestroy(IResource* resource);
-	ENGINE_API void requestDestroyGameObject(GameObject* object);
-	ENGINE_API void requestDestroyTrigger(Trigger* trigger);
-	ENGINE_API void requestDestroyCharacterController(ICharacterController* ctrl);
-	ENGINE_API void requestDestroyScene(Scene* scene);
+    ENGINE_API RaycastHit raycast(Vector3 origin, Vector3 direction, float distance);
+    ENGINE_API SweepHit sweep(Vector3 pos, Vector3 size, GameObject* ignore = nullptr);
 
-	ENGINE_API RaycastHit raycast(Vector3 origin, Vector3 direction, float distance);
+    ENGINE_API void setClearColor(Vector3 clearColor);
+    ENGINE_API void addTimer(float delay, std::function<void()> cb);
+    ENGINE_API void setCursorMode(CursorMode mode);
+    ENGINE_API void SetUICallback(std::function<void(Engine* engine)> callback);
+    ENGINE_API std::vector<VRAMStats> getVRAMStats();
 
-	ENGINE_API void setClearColor(Vector3 clearColor);
+    ENGINE_API void loadScene(Scene* scene);
+    ENGINE_API void unloadActiveScene();
+    ENGINE_API Scene* getActiveScene();
+    ENGINE_API void updateScene();
 
-	ENGINE_API void addTimer(float delay, std::function<void()> cb);
+    ENGINE_API void setLightPosition(Vector3 pos);
+    ENGINE_API void setGroundPlaneActive(bool active);
 
-	ENGINE_API void setCursorMode(CursorMode mode);
+    ENGINE_API UIElement* createUIElement(Texture* texture, Vector2 pos, Vector2 size);
 
-	ENGINE_API void SetUICallback(std::function<void(Engine* engine)> callback);
-	ENGINE_API std::vector<VRAMStats> getVRAMStats();
+    template <typename T>
+    T* createGameObject(
+        Transform spawnTransform,
+        Mesh* mesh,
+        Texture* texture,
+        PhysicsMaterial* material,
+        bool isDynamic
+    ) {
+        static_assert(
+            std::is_base_of<GameObject, T>::value,
+            "T must inherit from GameObject"
+        );
 
-	ENGINE_API void loadScene(Scene* scene);
+        size_t totalSize =
+            sizeof(ObjectHeader) +
+            alignof(T) +
+            sizeof(ObjectHeader*) +
+            sizeof(T);
 
-	ENGINE_API void unloadActiveScene();
-	ENGINE_API Scene* getActiveScene();
-	ENGINE_API void updateScene();
+        void* raw = requestMemory(totalSize);
+        if (!raw)
+            throw std::bad_alloc();
 
-	ENGINE_API void setLightPosition(Vector3 pos);
+        auto* header = static_cast<ObjectHeader*>(raw);
+        header->destroy = &destroyImpl<T>;
+        header->allocationBase = raw;
 
-	// TODO: Template
-	ENGINE_API UIElement* createUIElement(Texture* texture, Vector2 pos, Vector2 size);
+        void* objMem =
+            static_cast<char*>(raw) +
+            sizeof(ObjectHeader) +
+            sizeof(ObjectHeader*);
 
-	template <typename T>
-	T* createGameObject(
-		Transform spawnTransform,
-		Mesh* mesh,
-		Texture* texture,
-		PhysicsMaterial* material,
-		bool isDynamic
-	) {
-		static_assert(std::is_base_of<GameObject, T>::value,
-			"T must inherit from GameObject");
+        size_t space =
+            totalSize -
+            sizeof(ObjectHeader) -
+            sizeof(ObjectHeader*);
 
-		size_t totalSize = sizeof(ObjectHeader) + alignof(T) + sizeof(T);
+        void* alignedObjMem = std::align(
+            alignof(T),
+            sizeof(T),
+            objMem,
+            space
+        );
 
-		void* raw = requestMemory(totalSize);
+        if (!alignedObjMem) {
+            freeMemory(raw);
+            throw std::bad_alloc();
+        }
 
-		// header
-		auto* header = (ObjectHeader*)raw;
-		header->destroy = &Engine::destroyImpl<T>;
+        auto** headerLocation = reinterpret_cast<ObjectHeader**>(
+            static_cast<char*>(alignedObjMem) - sizeof(ObjectHeader*)
+        );
 
-		// object memory after header
-		void* objMem = (char*)raw + sizeof(ObjectHeader);
+        *headerLocation = header;
 
-		// alignment fix
-		size_t space = totalSize - sizeof(ObjectHeader);
+        T* object = new (alignedObjMem) T();
 
-		void* alignedObjMem = std::align(
-			alignof(T),
-			sizeof(T),
-			objMem,
-			space
-		);
+        internal_createGameObject(
+            object,
+            spawnTransform,
+            mesh,
+            texture,
+            material,
+            isDynamic
+        );
 
-		if (!alignedObjMem)
-			throw std::bad_alloc();
+        object->Start(this);
 
-		// construct object
-		T* object = new (alignedObjMem) T();
+        return object;
+    }
 
-		internal_createGameObject(
-			object,
-			spawnTransform,
-			mesh,
-			texture,
-			material,
-			isDynamic
-		);
+    template <typename T>
+    T* createScene(const char* sceneFile, bool* valid)
+    {
+        static_assert(
+            std::is_base_of<Scene, T>::value,
+            "T must inherit from Scene"
+        );
 
-		object->Start();
+        size_t totalSize =
+            sizeof(ObjectHeader) +
+            alignof(T) +
+            sizeof(ObjectHeader*) +
+            sizeof(T);
 
-		return object;
-	}
+        void* raw = requestMemory(totalSize);
+        if (!raw)
+            throw std::bad_alloc();
 
-	template <typename T>
-	T* createScene(const char* sceneFile, bool* valid)
-	{
-		static_assert(std::is_base_of<Scene, T>::value,
-			"T must inherit from Scene");
+        auto* header = static_cast<ObjectHeader*>(raw);
+        header->destroy = &destroyImpl<T>;
+        header->allocationBase = raw;
 
-		size_t totalSize = sizeof(ObjectHeader) + alignof(T) + sizeof(T);
+        void* objMem =
+            static_cast<char*>(raw) +
+            sizeof(ObjectHeader) +
+            sizeof(ObjectHeader*);
 
-		void* raw = requestMemory(totalSize);
+        size_t space =
+            totalSize -
+            sizeof(ObjectHeader) -
+            sizeof(ObjectHeader*);
 
-		// header sits at start
-		auto* header = (ObjectHeader*)raw;
-		header->destroy = &destroyImpl<T>;
+        void* alignedObjMem = std::align(
+            alignof(T),
+            sizeof(T),
+            objMem,
+            space
+        );
 
-		// object memory starts after header
-		void* objMem = (char*)raw + sizeof(ObjectHeader);
+        if (!alignedObjMem) {
+            freeMemory(raw);
+            throw std::bad_alloc();
+        }
 
-		// IMPORTANT: std::align needs mutable space variable
-		size_t space = totalSize - sizeof(ObjectHeader);
+        auto** headerLocation = reinterpret_cast<ObjectHeader**>(
+            static_cast<char*>(alignedObjMem) - sizeof(ObjectHeader*)
+        );
 
-		void* alignedObjMem = std::align(
-			alignof(T),
-			sizeof(T),
-			objMem,
-			space
-		);
+        *headerLocation = header;
 
-		if (!alignedObjMem)
-			throw std::bad_alloc();
+        T* object = new (alignedObjMem) T();
 
-		// construct Scene in-place
-		T* object = new (alignedObjMem) T();
+        bool result = loadScene_internal(object, sceneFile);
+        if (valid)
+            *valid = result;
 
-		bool result = loadScene_internal(object, sceneFile);
-		if (valid) *valid = result;
+        return object;
+    }
 
-		return object;
-	}
+    template <typename T>
+    T* createScene()
+    {
+        static_assert(
+            std::is_base_of<Scene, T>::value,
+            "T must inherit from Scene"
+        );
 
-	// Memory Allocator
-	ENGINE_API static void* requestMemory(size_t size);
-	ENGINE_API static void freeMemory(void* ptr);
+        size_t totalSize =
+            sizeof(ObjectHeader) +
+            alignof(T) +
+            sizeof(ObjectHeader*) +
+            sizeof(T);
 
-	ENGINE_API void dualsense_playHaptics(Sound* sound, float volume);
-	ENGINE_API void dualsense_setLightbarColor(unsigned char R, unsigned char G, unsigned char B);
-	ENGINE_API bool isDualSenseAttached();
+        void* raw = requestMemory(totalSize);
+        if (!raw)
+            throw std::bad_alloc();
 
-	ENGINE_API GamepadState* getGamepad();
+        auto* header = static_cast<ObjectHeader*>(raw);
+        header->destroy = &destroyImpl<T>;
+        header->allocationBase = raw;
 
-	ENGINE_API bool isLastFrame();
+        void* objMem =
+            static_cast<char*>(raw) +
+            sizeof(ObjectHeader) +
+            sizeof(ObjectHeader*);
+
+        size_t space =
+            totalSize -
+            sizeof(ObjectHeader) -
+            sizeof(ObjectHeader*);
+
+        void* alignedObjMem = std::align(
+            alignof(T),
+            sizeof(T),
+            objMem,
+            space
+        );
+
+        if (!alignedObjMem) {
+            freeMemory(raw);
+            throw std::bad_alloc();
+        }
+
+        auto** headerLocation = reinterpret_cast<ObjectHeader**>(
+            static_cast<char*>(alignedObjMem) - sizeof(ObjectHeader*)
+        );
+
+        *headerLocation = header;
+
+        T* object = new (alignedObjMem) T();
+
+        return object;
+    }
+
+    // Memory Allocator
+    ENGINE_API static void* requestMemory(size_t size);
+    ENGINE_API static void freeMemory(void* ptr);
+
+    ENGINE_API void dualsense_playHaptics(Sound* sound, float volume);
+    ENGINE_API void dualsense_setLightbarColor(unsigned char R, unsigned char G, unsigned char B);
+    ENGINE_API bool isDualSenseAttached();
+    ENGINE_API GamepadState* getGamepad();
+    ENGINE_API bool isLastFrame();
 
 	// engine internal
 	void playSound(Sound* sound, FMOD::ChannelGroup* group, FMOD::Channel** channel, bool startPaused);
@@ -289,11 +395,18 @@ private:
 	void OnError_Handler(std::string errorString);
 
 	template <typename T>
-	static void destroyImpl(void* p) {
-		((T*)p)->~T();
-		void* base = (char*)p - sizeof(ObjectHeader);
-		freeMemory(base);
-	}
+    static void destroyImpl(void* p)
+    {
+        if (!p)
+            return;
+
+        T* object = static_cast<T*>(p);
+        ObjectHeader* header = getHeader(object);
+        void* allocationBase = header->allocationBase;
+
+        object->~T();
+        freeMemory(allocationBase);
+    }
 
 	ENGINE_API void internal_createGameObject(
 		GameObject* ptr,
@@ -344,12 +457,15 @@ private:
 
 	// GLFW Window
 	GLFWwindow* window;
+	float scrollDelta = 0.0f;
 	const uint32_t WIDTH = 800;
 	const uint32_t HEIGHT = 600;
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+	void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	void initWindow(const int width, const int height, const char* title);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	static void mouseCallback(GLFWwindow* window, double x, double y);
+	static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 	// Vulkan Variables and Methods
 	void initVulkan();
@@ -512,6 +628,8 @@ private:
 	PxScene* gScene = nullptr;
 	PxMaterial* gDefaultMaterial = nullptr;
 	PhysicsMaterial* eDefaultMaterial = nullptr;
+	PxMaterial* gGroundMaterial = nullptr;
+	PxRigidStatic* groundPlane = nullptr;
 #ifndef _WIN32
 	PxCooking* mCooking;
 #endif

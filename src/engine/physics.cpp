@@ -117,10 +117,30 @@ void Engine::initPhysX() {
 
     gScene = gPhysics->createScene(sceneDesc);
 
-    // TODO: Floor?
-    //PxMaterial* gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
-    //PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, PxPlane(0, 0, 1, 0), *gMaterial);
-    //gScene->addActor(*groundPlane);
+    gGroundMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
+    groundPlane = gPhysics->createRigidStatic(
+        PxTransform(PxVec3(0.0f, 0.0f, -0.5f))
+    );
+
+    PxShape* shape = gPhysics->createShape(
+        PxBoxGeometry(1000.0f, 1000.0f, 0.5f), // Half-extents
+        *gGroundMaterial
+    );
+    shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+    shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+    shape->setFlag(PxShapeFlag::eVISUALIZATION, true);
+
+    groundPlane->attachShape(*shape);
+    shape->release();
+
+    GameObject* groundGameObject = createGameObject<GameObject>(
+        {{0.0f, 0.0f, 0.0f}, {0.0f,0.0f,0.0f,1.0f}, {2000.0f,2000.0f,1.0f}},
+        nullptr,
+        nullptr,
+        nullptr,
+        false
+    );
+    groundPlane->userData = groundGameObject;
 
     // Character Controller
     gControllerManager = PxCreateControllerManager(*gScene);
@@ -386,4 +406,78 @@ void Engine::cookMesh(Mesh* mesh) {
 
 void Engine::renderPhysXDebug(bool state) {
     visualizePhysX = state;
+}
+
+static bool groundActive = false;
+
+void Engine::setGroundPlaneActive(bool active)
+{
+    if (active == groundActive)
+        return;
+
+    groundActive = active;
+
+    if (active) {
+        gScene->addActor(*groundPlane);
+    }
+    else
+        gScene->removeActor(*groundPlane);
+}
+
+SweepHit Engine::sweep(Vector3 pos, Vector3 size, GameObject* ignore) {
+    SweepHit result;
+
+    physx::PxBoxGeometry geometry(size.x / 2.0f, size.y / 2.0f, size.z / 2.0f);
+    physx::PxTransform pose(physx::PxVec3(pos.x, pos.y, pos.z));
+
+    constexpr physx::PxU32 kMaxOverlaps = 32;
+    physx::PxOverlapHit hitBuffer[kMaxOverlaps];
+    physx::PxOverlapBuffer overlapBuffer(hitBuffer, kMaxOverlaps);
+
+    physx::PxQueryFilterData filterData;
+    filterData.flags = physx::PxQueryFlag::eSTATIC
+        | physx::PxQueryFlag::eDYNAMIC
+        | physx::PxQueryFlag::ePREFILTER;
+
+    struct TriggerFilter : physx::PxQueryFilterCallback {
+        physx::PxQueryHitType::Enum preFilter(
+            const physx::PxFilterData&,
+            const physx::PxShape* shape,
+            const physx::PxRigidActor*,
+            physx::PxHitFlags&) override
+        {
+            if (shape->getFlags() & physx::PxShapeFlag::eTRIGGER_SHAPE)
+                return physx::PxQueryHitType::eNONE;
+            return physx::PxQueryHitType::eTOUCH;
+        }
+
+#if defined(_WIN32)
+        physx::PxQueryHitType::Enum postFilter(
+            const physx::PxFilterData&, const physx::PxQueryHit&,
+            const physx::PxShape*, const physx::PxRigidActor*) override
+#else
+        physx::PxQueryHitType::Enum postFilter(
+            const physx::PxFilterData&, const physx::PxQueryHit&) override
+#endif
+        {
+            return physx::PxQueryHitType::eTOUCH;
+        }
+    } triggerFilter;
+
+    bool status = gScene->overlap(geometry, pose, overlapBuffer, filterData, &triggerFilter);
+
+    if (status) {
+        physx::PxU32 count = overlapBuffer.getNbTouches();
+        for (physx::PxU32 i = 0; i < count; i++) {
+            physx::PxRigidActor* actor = overlapBuffer.getTouch(i).actor;
+            if (!actor || !actor->userData) continue;
+
+            GameObject* obj = static_cast<GameObject*>(actor->userData);
+            if (obj == ignore) continue;
+
+            result.objects.push_back(obj);
+        }
+    }
+
+    return result;
 }

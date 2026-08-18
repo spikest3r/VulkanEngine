@@ -26,6 +26,7 @@ using namespace physx;
 
 struct ObjectHeader {
     void (*destroy)(void*);
+    void* allocationBase;
 };
 
 struct Vector3 {
@@ -257,6 +258,10 @@ private:
 struct RaycastHit {
     float distance;
     GameObject* object;
+};
+
+struct SweepHit {
+    std::vector<GameObject*> objects;
 };
 
 enum class PhysicsType {

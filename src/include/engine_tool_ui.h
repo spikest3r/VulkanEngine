@@ -4,26 +4,66 @@
 
 class ENGINE_API ToolUI;
 
-class UIFont {
-	friend class ToolUI;
+class UIFont
+{
+    friend class ToolUI;
+
 private:
-	ImFont* font;
+    ImFont* font;
 };
 
-class ENGINE_API ToolUI {
+enum SeparatorType {
+    VERTICAL,
+    HORIZONTAL
+};
+
+class ENGINE_API ToolUI
+{
 public:
-	static void Begin(const char* name);
-	static void End();
-	static bool Button(const char* text);
-	static bool Button(const char* text, Vector2 size);
-	static void Text(const char* text); // todo: args
-	static void SameLine();
-	static void ProgressBar(float value, Vector2 vec);
-	static bool TextField(const char* label, char* buffer, size_t size, bool disallowBlank = false);
-	static bool InputFloat3(const char* label, Vector3& v, float speed = 0.1f);
-	static void SetNextWindowSize(Vector2 size);
-	static void SetNextWindowPos(Vector2 pos);
-	static void AddFontFromFileTTF(UIFont& font, const char* fontName, float size);
-	static void PushFont(UIFont& font);
-	static void PopFont();
+    static void Begin(const char* name, bool borderless = false, bool resizable = true);
+    static void End();
+
+    static bool Button(const char* text);
+    static bool Button(const char* text, Vector2 size);
+
+    static void Text(const char* text);
+    static void SameLine();
+
+    static void ProgressBar(float value, Vector2 vec);
+
+    static bool TextField(
+        const char* label,
+        char* buffer,
+        size_t size,
+        bool disallowBlank = false
+    );
+    static bool TextField(const char* label, std::string& str, bool disallowBlank);
+
+    static bool InputFloat3(
+        const char* label,
+        Vector3& v,
+        float speed = 0.1f
+    );
+
+    static bool Checkbox(const char* label, bool* value);
+    static bool RadioButtonInt(const char* label, int* value, int option);
+
+    static void Separator(SeparatorType type);
+
+    static void SetNextWindowSize(Vector2 size);
+    static void SetNextWindowPos(Vector2 pos);
+
+    static void AddFontFromFileTTF(
+        UIFont& font,
+        const char* fontName,
+        float size
+    );
+
+    static void PushFont(UIFont& font);
+    static void PopFont();
+
+    static bool InputTextMultiline(
+        const char* label,
+        std::string& str
+    );
 };

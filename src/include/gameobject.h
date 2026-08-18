@@ -47,8 +47,9 @@ public:
 
 	uint32_t getID();
 
-	virtual void Start();
-	virtual void Update();
+	virtual void Start(Engine* engine);
+	virtual void Update(Engine* engine);
+	virtual void Destroy(Engine* engine);
 private:
 	bool skip = false;
 	

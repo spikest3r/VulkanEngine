@@ -59,7 +59,6 @@ void Engine::internal_createGameObject(
 
     std::string groupName = "ObjGroup_" + std::to_string(gameObjectID);
     system->createChannelGroup(groupName.c_str(), &ptr->channelGroup);
-    ptr->channelGroup->setMode(FMOD_2D);
 
     if (mesh) {
         if (isDynamic)
@@ -102,16 +101,12 @@ void GameObject::updateTexture(Texture* newTexture) {
 void GameObject::playSound(Sound* sound, float volume)
 {
     FMOD::Channel* channel = nullptr;
-
     engPtr->playSound(sound, channelGroup, &channel, false);
-
     if (!channel)
         return;
-
-    channel->setVolume(volume);
-
     FMOD_VECTOR pos = vecToFmod(transform.position);
     channel->set3DAttributes(&pos, nullptr);
+    channel->setVolume(volume);
 }
 
 void GameObject::stopAllSounds() {
@@ -197,15 +192,12 @@ void Engine::checkGameObjectDestroy() {
 		auto& object = gameObjectDestroyQueue.front();
         
         if(object) {
+            object->Destroy(this);
             cleanupGameObject(object);
         }
 
         gameObjectDestroyQueue.pop();
     }
-}
-
-inline ObjectHeader* getHeader(void* obj) {
-    return (ObjectHeader*)((char*)obj - sizeof(ObjectHeader));
 }
 
 void Engine::cleanupGameObject(GameObject* object) {
@@ -297,10 +289,14 @@ GameObject* Engine::getGameObject(std::string name) {
 
 uint32_t GameObject::getID() {return id;}
 
-void GameObject::Update() {
+void GameObject::Update(Engine* engine) {
+    updateTransform();
+}
+
+void GameObject::Start(Engine* engine) {
 
 }
 
-void GameObject::Start() {
+void GameObject::Destroy(Engine* engine) {
 
 }

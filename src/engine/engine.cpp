@@ -70,6 +70,8 @@ bool Engine::running() {
 }
 
 void Engine::update() {
+	scrollDelta = 0.0f;
+	
 	glfwPollEvents();
 	readGlfwGamePadState();
 
@@ -78,7 +80,7 @@ void Engine::update() {
 	oldTime = currentTime;
 
 	for (auto& object: gameObjects) {
-		object->Update();
+		object->Update(this);
 		object->updateSound();
 	}
 
@@ -365,4 +367,37 @@ void Engine::OnError_Handler(std::string errorString) {
 	#endif
 
 	exit();
+}
+
+void Engine::getMouseRay(Vector3& origin, Vector3& direction)
+{
+    Vector2 position = getMousePos();
+
+    glm::mat4 view = getViewMatrix();
+    glm::mat4 proj = getProjectionMatrix();
+
+    Vector2 extents = getExtents(); // width / height
+
+    // Screen -> NDC
+    float x = (2.0f * position.x) / extents.x - 1.0f;
+	float y = (2.0f * position.y) / extents.y - 1.0f;
+
+    glm::vec4 rayStartNDC(x, y, 0.0f, 1.0f);
+    glm::vec4 rayEndNDC(x, y, 1.0f, 1.0f);
+
+    glm::mat4 invVP = glm::inverse(proj * view);
+
+    glm::vec4 rayStartWorld = invVP * rayStartNDC;
+    glm::vec4 rayEndWorld = invVP * rayEndNDC;
+
+    rayStartWorld /= rayStartWorld.w;
+    rayEndWorld /= rayEndWorld.w;
+
+    glm::vec3 start(rayStartWorld);
+    glm::vec3 end(rayEndWorld);
+
+    glm::vec3 dir = glm::normalize(end - start);
+
+    origin = Vector3(start.x, start.y, start.z);
+    direction = Vector3(dir.x, dir.y, dir.z);
 }

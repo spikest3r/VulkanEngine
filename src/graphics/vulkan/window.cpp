@@ -5,6 +5,11 @@ void Engine::mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	mouseY = ypos;
 }
 
+void Engine::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    scrollDelta += static_cast<float>(yoffset);
+}
+
 Vector2 Engine::getMousePos() {
 	return { mouseX, mouseY };
 }
@@ -39,6 +44,7 @@ void Engine::initWindow(const int width, const int height, const char* title) {
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
 	glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
@@ -75,4 +81,13 @@ void Engine::framebufferResizeCallback(GLFWwindow* window, int width, int height
 void Engine::mouseCallback(GLFWwindow* window, double x, double y) {
 	auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
 	app->mouse_callback(window, x, y);
+}
+
+void Engine::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
+	app->scroll_callback(window, xoffset, yoffset);
+}
+
+float Engine::getScrollDelta() {
+    return scrollDelta;
 }
