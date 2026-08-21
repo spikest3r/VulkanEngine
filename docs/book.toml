@@ -1,0 +1,5 @@
+[book]
+title = "VkEngine Documentation"
+authors = ["VkEngine Contributors"]
+language = "en"
+src = "src"
